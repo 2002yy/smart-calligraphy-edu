@@ -35,7 +35,7 @@ class Settings(BaseModel):
     qwen_evaluation_enabled: bool = os.getenv("QWEN_EVALUATION_ENABLED", "false").lower() in {"1", "true", "yes", "on"}
     qwen_api_key: str = os.getenv("QWEN_API_KEY", "")
     qwen_base_url: str = os.getenv("QWEN_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
-    qwen_evaluation_model: str = os.getenv("QWEN_EVALUATION_MODEL", "qwen3.5-plus")
+    qwen_evaluation_model: str = os.getenv("QWEN_EVALUATION_MODEL", "qwen3.5-plus")  # 397B 原生多模态，¥0.8/百万输入，性价比最高
     qwen_image_max_size: int = int(os.getenv("QWEN_IMAGE_MAX_SIZE", "768"))
     qwen_image_detail: str = os.getenv("QWEN_IMAGE_DETAIL", "low")
 

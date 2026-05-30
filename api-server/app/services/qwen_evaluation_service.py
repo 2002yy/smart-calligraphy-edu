@@ -1,12 +1,13 @@
 """Qwen3.5-Plus 视觉书法评测服务
 
-通过阿里云百炼 DashScope API（OpenAI 兼容模式）调用通义千问视觉模型，
+通过阿里云百炼 DashScope API（OpenAI 兼容模式）调用通义千问 qwen3.5-plus 模型，
 对上传的书法作品图片进行结构、重心、笔画维度的智能评分。
 
-API 文档: https://help.aliyun.com/zh/model-studio/developer-reference
-计费: 约 ¥0.8/百万 Token，单次评测约 ¥0.001
+模型: qwen3.5-plus — 397B 参数（激活 17B），原生多模态，2026年2月发布
+价格: ¥0.8/百万输入tokens, ¥4.8/百万输出tokens
+       每次评测约 ¥0.002（含图片编码），¥5 可跑约 2500 次
 开通: 阿里云百炼控制台 -> 模型广场 -> qwen3.5-plus -> 申请 API Key
-模型 ID: qwen3.5-plus（全部小写）
+API 文档: https://help.aliyun.com/zh/model-studio/developer-reference
 """
 
 from __future__ import annotations
