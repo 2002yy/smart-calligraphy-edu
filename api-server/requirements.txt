@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+pydantic
+sqlalchemy
+python-multipart
+pymysql
+pytest
+httpx
+openai
+Pillow

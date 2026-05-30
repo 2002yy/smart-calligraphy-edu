@@ -1,0 +1,12 @@
+{
+  "name": "playwright-smoke",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "smoke": "node smoke.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.54.2"
+  }
+}

@@ -1,0 +1,44 @@
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
+from app.core.database import get_db
+from app.schemas.common import APIResponse
+from app.schemas.task import TaskCreate, TaskRead
+from app.services import TaskService
+
+router = APIRouter()
+
+
+@router.get(
+    "",
+    response_model=APIResponse[list[TaskRead]],
+    summary="获取任务列表",
+    description="支持按班级或课程筛选，适用于学生端任务页和教师端任务管理页。",
+)
+def list_tasks(
+    class_id: int | None = None,
+    course_id: int | None = None,
+    db: Session = Depends(get_db),
+):
+    data = [TaskRead(**item) for item in TaskService.list_tasks(db, class_id=class_id, course_id=course_id)]
+    return APIResponse[list[TaskRead]](data=data)
+
+
+@router.post(
+    "",
+    response_model=APIResponse[TaskRead],
+    summary="创建教学任务",
+)
+def create_task(payload: TaskCreate, db: Session = Depends(get_db)):
+    data = TaskRead(**TaskService.create_task(db, payload))
+    return APIResponse[TaskRead](data=data)
+
+
+@router.get(
+    "/{task_id}",
+    response_model=APIResponse[TaskRead],
+    summary="获取任务详情",
+)
+def get_task(task_id: int, db: Session = Depends(get_db)):
+    data = TaskRead(**TaskService.get_task(db, task_id))
+    return APIResponse[TaskRead](data=data)

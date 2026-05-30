@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>智慧书法教学软件 - 页面原型结构（现行版）</title>
+  <style>
+    :root {
+      --bg: #f5efe4;
+      --paper: rgba(255, 251, 245, 0.92);
+      --line: rgba(88, 62, 40, 0.14);
+      --ink: #2f241a;
+      --muted: #756553;
+      --teacher: #8c4224;
+      --student: #145b7c;
+      --display: "STSong", "SimSun", serif;
+      --text: "Microsoft YaHei", "PingFang SC", sans-serif;
+      --shadow: 0 16px 36px rgba(55, 34, 18, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(166, 95, 55, 0.12), transparent 24%),
+        radial-gradient(circle at bottom right, rgba(20, 91, 124, 0.08), transparent 22%),
+        linear-gradient(180deg, #fbf7ef, #efe6d8);
+    }
+    h1, h2, h3, h4, h5, p { margin: 0; }
+    h1, h2, h3, h4, h5 { font-family: var(--display); }
+
+    .wrap {
+      width: min(1320px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 28px 0 60px;
+    }
+    .nav {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 18px;
+      position: sticky;
+      top: 12px;
+      z-index: 10;
+    }
+    .navin {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 250, 243, 0.86);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+    .brand, .chip, .tag { border-radius: 999px; }
+    .brand {
+      padding: 8px 14px;
+      background: linear-gradient(135deg, rgba(140, 66, 36, 0.12), rgba(20, 91, 124, 0.08));
+      color: var(--teacher);
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .nav a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+      padding: 8px 12px;
+    }
+    .hero, .section, .foot {
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+    }
+    .hero { padding: 28px; }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 22px;
+      align-items: end;
+    }
+    .ey {
+      display: inline-flex;
+      padding: 8px 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.7);
+      color: var(--teacher);
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .hero h1 {
+      margin-top: 18px;
+      font-size: clamp(34px, 4.8vw, 56px);
+      line-height: 1.08;
+    }
+    .hero p {
+      margin-top: 14px;
+      max-width: 760px;
+      color: var(--muted);
+      line-height: 1.82;
+      font-size: 15px;
+    }
+    .tags { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+    .tag {
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.7);
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .note {
+      padding: 22px;
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(58, 42, 31, 0.95), rgba(43, 31, 23, 0.98));
+      color: #fff4e7;
+    }
+    .note h3 { font-size: 20px; margin-bottom: 8px; }
+    .note p { margin-top: 0; font-size: 13px; color: rgba(255,244,231,.82); }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .stat {
+      padding: 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+    }
+    .stat strong { display: block; font-size: 24px; margin-bottom: 4px; }
+    .stat span { font-size: 12px; color: rgba(255,244,231,.74); }
+    .section { margin-top: 26px; padding: 22px; }
+    .sh {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+    .sh h2 { font-size: 30px; margin-bottom: 8px; }
+    .sh p { max-width: 760px; color: var(--muted); font-size: 14px; line-height: 1.8; }
+    .secb {
+      padding: 10px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .secb.teacher { background: rgba(140,66,36,.1); color: var(--teacher); }
+    .secb.student { background: rgba(20,91,124,.1); color: var(--student); }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 18px;
+    }
+    .card {
+      overflow: hidden;
+      border-radius: 24px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.88), rgba(255,251,245,.98));
+    }
+    .ph {
+      padding: 18px 18px 14px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(244,232,214,.88), rgba(255,251,245,0));
+    }
+    .ph h3 { font-size: 20px; margin-bottom: 8px; }
+    .ph p { min-height: 42px; color: var(--muted); font-size: 13px; line-height: 1.75; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .chip {
+      padding: 6px 10px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.78);
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .mk { padding: 14px; }
+    .desk {
+      overflow: hidden;
+      border-radius: 22px;
+      border: 1px solid var(--line);
+      min-height: 420px;
+      display: grid;
+      grid-template-columns: 168px 1fr;
+      background: linear-gradient(180deg, #fdf8ef, #f4eadc);
+    }
+    .side {
+      padding: 16px 14px;
+      color: #fff4e8;
+    }
+    .side.teacher {
+      background: linear-gradient(180deg, #2c221c, #483528 52%, #573f31);
+    }
+    .side.student {
+      background: linear-gradient(180deg, #12384d, #114259 52%, #0d5269);
+      color: #eef8ff;
+    }
+    .side strong { display: block; font-size: 15px; margin-bottom: 5px; }
+    .side p { font-size: 12px; line-height: 1.6; opacity: .82; margin-bottom: 14px; }
+    .si {
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.04);
+      font-size: 12px;
+    }
+    .si.active.teacher { background: rgba(212,135,87,.16); }
+    .si.active.student { background: rgba(122,203,240,.14); }
+    .work { padding: 14px; }
+    .work.student {
+      background: linear-gradient(180deg, #fbfeff, #eef7fb);
+    }
+    .stage {
+      padding: 16px;
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      min-height: 132px;
+      margin-bottom: 12px;
+    }
+    .stage.teacher {
+      background: linear-gradient(120deg, rgba(255,247,236,.96), rgba(246,228,207,.92));
+    }
+    .stage.student {
+      background: linear-gradient(120deg, rgba(246,252,255,.96), rgba(220,241,252,.92));
+    }
+    .stage .brandline { font-size: 28px; margin-bottom: 8px; }
+    .stage h4 { font-size: 22px; line-height: 1.18; margin-bottom: 8px; }
+    .stage p { color: var(--muted); font-size: 13px; line-height: 1.8; max-width: 30rem; }
+    .panel {
+      padding: 18px;
+      border-radius: 22px;
+      border: 1px solid var(--line);
+      background: rgba(255,251,245,.96);
+    }
+    .panel.student { background: rgba(252,254,255,.96); }
+    .ey2 {
+      margin-bottom: 10px;
+      letter-spacing: .18em;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #b58d5b;
+    }
+    .panel.student .ey2 { color: #79bbdf; }
+    .panel h4 { font-size: 20px; margin-bottom: 10px; }
+    .panel p { color: var(--muted); font-size: 13px; line-height: 1.8; }
+    .metrics {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .metrics.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .metric { padding: 12px 0; border-bottom: 1px solid var(--line); }
+    .metric span { display: block; color: var(--muted); font-size: 12px; }
+    .metric strong { display: block; margin: 8px 0 4px; font-size: 28px; }
+    .split {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      margin-top: 18px;
+    }
+    .block { display: grid; gap: 10px; align-content: start; }
+    .bh {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+    .bh h5 { font-size: 18px; }
+    .bh span { font-size: 12px; color: var(--muted); }
+    .line {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 10px 0;
+      border-bottom: 1px dashed var(--line);
+      font-size: 13px;
+    }
+    .line span { color: var(--muted); text-align: right; }
+    .soft {
+      min-height: 154px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 18px;
+      border-radius: 20px;
+      border: 1px dashed var(--line);
+      background: rgba(255,255,255,.68);
+    }
+    .soft strong { display: block; font-size: 24px; margin-bottom: 8px; }
+    .soft p { color: var(--muted); font-size: 13px; line-height: 1.8; max-width: 28rem; }
+    .foot { margin-top: 28px; padding: 22px; }
+    .foot h2 { font-size: 28px; margin-bottom: 10px; }
+    .foot p { color: var(--muted); font-size: 14px; line-height: 1.82; }
+    .fgrid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+    .fi {
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.76);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    .fi strong { display: block; margin-bottom: 6px; color: var(--ink); font-size: 14px; }
+    @media (max-width: 1080px) {
+      .hero-grid, .desk, .split { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 760px) {
+      .wrap { width: min(100% - 18px, 1320px); }
+      .hero, .section, .foot { padding: 18px; }
+      .metrics, .metrics.four { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="nav">
+      <div class="navin">
+        <span class="brand">智慧书法 · 现行页面原型结构</span>
+        <a href="#student">学生端</a>
+        <a href="#teacher">教师端</a>
+        <a href="#notes">修订说明</a>
+      </div>
+    </nav>
+
+    <section class="hero">
+      <div class="hero-grid">
+        <div>
+          <span class="ey">与当前真实前端一致的原型结构稿</span>
+          <h1>把原型稿<br />从早期扩展版<br />收口为现行产品版</h1>
+          <p>
+            当前真实前端已经明确收口为学生端 4 页和教师端 4 页，因此这一版 HTML 不再保留字帖馆、单字详情、教师数据报告等早期扩展页，
+            而是直接对齐当前仓库中的可运行页面与现有导航结构。
+          </p>
+          <div class="tags">
+            <span class="tag">与当前 Vue 页面命名一致</span>
+            <span class="tag">与当前双端导航一致</span>
+            <span class="tag">适合答辩截图与结构讲解</span>
+            <span class="tag">更接近真实产品现状</span>
+          </div>
+        </div>
+        <aside class="note">
+          <h3>当前页面总览</h3>
+          <p>学生端：学习总览、任务中心、提交评测、成长档案。</p>
+          <p>教师端：教学看板、课程班级、任务编排、批阅复盘。</p>
+          <div class="stats">
+            <div class="stat"><strong>4</strong><span>学生端核心页</span></div>
+            <div class="stat"><strong>4</strong><span>教师端核心页</span></div>
+            <div class="stat"><strong>8</strong><span>现行原型总页数</span></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section" id="student">
+      <div class="sh">
+        <div>
+          <h2>学生端原型结构</h2>
+          <p>学生端围绕当前已落地的学习链路展开：学习总览、任务中心、提交评测、成长档案。</p>
+        </div>
+        <div class="secb student">学生学习空间 / 4 页</div>
+      </div>
+      <div class="grid">
+        <article class="card">
+          <div class="ph">
+            <h3>1. 学习总览</h3>
+            <p>当前学生首页。先说明学生处于哪个学习阶段，再过渡到任务、反馈和成长入口。</p>
+            <div class="chips"><span class="chip">班级状态</span><span class="chip">任务数量</span><span class="chip">最近反馈</span></div>
+          </div>
+          <div class="mk">
+            <div class="desk">
+              <aside class="side student">
+                <strong>智慧书法</strong><p>学生学习空间</p>
+                <div class="si active student">学习总览</div><div class="si">任务中心</div><div class="si">提交评测</div><div class="si">成长档案</div>
+              </aside>
+              <main class="work student">
+                <div class="stage student"><div class="brandline">智慧书法</div><h4>先看路径，再进入动作</h4><p>首页先讲当前状态，而不是直接堆数字。</p></div>
+                <div class="panel student">
+                  <div class="ey2">学习总览</div><h4>先看路径，再进入动作</h4><p>先给出班级、任务与得分状态，再顺势过渡到任务、提交和成长档案。</p>
+                  <div class="metrics">
+                    <div class="metric"><span>已加入班级</span><strong>1</strong></div>
+                    <div class="metric"><span>当前任务数</span><strong>3</strong></div>
+                    <div class="metric"><span>平均得分</span><strong>84</strong></div>
+                  </div>
+                  <div class="split">
+                    <section class="block">
+                      <div class="bh"><h5>当前推荐任务</h5><span>今天练什么</span></div>
+                      <div class="line"><strong>欧楷基础训练</strong><span>任务标题</span></div>
+                      <div class="line"><strong>永 / 天 / 木</strong><span>练习字</span></div>
+                      <div class="line"><strong>结构与重心优先</strong><span>任务说明</span></div>
+                    </section>
+                    <section class="block">
+                      <div class="bh"><h5>最近一次反馈</h5><span>系统回流</span></div>
+                      <div class="line"><strong>已评测</strong><span>作业状态</span></div>
+                      <div class="line"><strong>84</strong><span>最近得分</span></div>
+                      <div class="line"><strong>右部偏窄</strong><span>建议摘要</span></div>
+                    </section>
+                  </div>
+                </div>
+              </main>
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="ph">
+            <h3>2. 任务中心</h3>
+            <p>当前学生任务页。把教师要求转成学生能理解、能执行的训练目标。</p>
+            <div class="chips"><span class="chip">任务目标</span><span class="chip">评分维度</span><span class="chip">截止时间</span></div>
+          </div>
+          <div class="mk">
+            <div class="desk">
+              <aside class="side student">
+                <strong>智慧书法</strong><p>学生学习空间</p>
+                <div class="si">学习总览</div><div class="si active student">任务中心</div><div class="si">提交评测</div><div class="si">成长档案</div>
+              </aside>
+              <main class="work student">
+                <div class="stage student"><div class="brandline">智慧书法</div><h4>先知道练什么，再知道为什么练</h4><p>让练习字、评分维度和截止时间一目了然。</p></div>
+                <div class="panel student">
+                  <div class="ey2">任务中心</div><h4>把任务说清楚，再开始训练</h4>
+                  <div class="split">
+                    <section class="block">
+                      <div class="bh"><h5>任务信息</h5><span>训练要求</span></div>
+                      <div class="line"><strong>欧楷基础训练</strong><span>任务名称</span></div>
+                      <div class="line"><strong>永 / 天 / 木</strong><span>练习字</span></div>
+                      <div class="line"><strong>今晚 21:00</strong><span>截止时间</span></div>
+                    </section>
+                    <section class="block">
+                      <div class="bh"><h5>评分重点</h5><span>多维评价</span></div>
+                      <div class="line"><strong>40%</strong><span>结构</span></div>
+                      <div class="line"><strong>30%</strong><span>重心</span></div>
+                      <div class="line"><strong>30%</strong><span>笔顺</span></div>
+                    </section>
+                  </div>
+                </div>
+              </main>
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="ph">
+            <h3>3. 提交评测</h3>
+            <p>当前学生提交页。连接“作品提交”和“AI 评测触发”两条核心链路。</p>
+            <div class="chips"><span class="chip">上传作品</span><span class="chip">触发评测</span><span class="chip">结果回流</span></div>
+          </div>
+          <div class="mk">
+            <div class="desk">
+              <aside class="side student">
+                <strong>智慧书法</strong><p>学生学习空间</p>
+                <div class="si">学习总览</div><div class="si">任务中心</div><div class="si active student">提交评测</div><div class="si">成长档案</div>
+              </aside>
+              <main class="work student">
+                <div class="stage student"><div class="brandline">智慧书法</div><h4>把作品提交与 AI 评测放进同一条动作链</h4><p>这是双端联调最关键的一步。</p></div>
+                <div class="panel student">
+                  <div class="ey2">提交评测</div><h4>上传作品，触发智能评测</h4>
+                  <div class="split">
+                    <section class="block">
+                      <div class="bh"><h5>提交信息</h5><span>上传链路</span></div>
+                      <div class="line"><strong>已选任务</strong><span>当前任务</span></div>
+                      <div class="line"><strong>作品图片</strong><span>上传内容</span></div>
+                      <div class="line"><strong>立即评测</strong><span>评测动作</span></div>
+                    </section>
+                    <section class="block">
+                      <div class="bh"><h5>页面空状态</h5><span>未选任务时</span></div>
+                      <div class="soft"><div><strong>请先选择训练任务</strong><p>真实页面中，如果学生未从任务中心选中任务，这里会先提示去任务中心。</p></div></div>
+                    </section>
+                  </div>
+                </div>
+              </main>
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="ph">
+            <h3>4. 成长档案</h3>
+            <p>当前成长页。说明系统如何长期记录学习过程、提炼问题标签和沉淀个性化反馈。</p>
+            <div class="chips"><span class="chip">成绩趋势</span><span class="chip">问题标签</span><span class="chip">成长建议</span></div>
+          </div>
+          <div class="mk">
+            <div class="desk">
+              <aside class="side student">
+                <strong>智慧书法</strong><p>学生学习空间</p>
+                <div class="si">学习总览</div><div class="si">任务中心</div><div class="si">提交评测</div><div class="si active student">成长档案</div>
+              </aside>
+              <main class="work student">
+                <div class="stage student"><div class="brandline">智慧书法</div><h4>把每一次练习，沉淀成看得见的成长</h4><p>成长档案不是简单成绩页，而是长期学习记录。</p></div>
+                <div class="panel student">
+                  <div class="ey2">成长档案</div><h4>记录过程，而不是只展示结果</h4>
+                  <div class="metrics">
+                    <div class="metric"><span>平均得分</span><strong>84</strong></div>
+                    <div class="metric"><span>累计练习</span><strong>28</strong></div>
+                    <div class="metric"><span>连续练习</span><strong>6</strong></div>
+                  </div>
+                  <div class="split">
+                    <section class="block">
+                      <div class="bh"><h5>问题变化</h5><span>趋势记录</span></div>
+                      <div class="line"><strong>重心偏移下降</strong><span>较上周</span></div>
+                      <div class="line"><strong>左右结构仍偏窄</strong><span>当前主要问题</span></div>
+                    </section>
+                    <section class="block">
+                      <div class="bh"><h5>推荐练习</h5><span>继续训练</span></div>
+                      <div class="line"><strong>都 / 部 / 郭</strong><span>推荐字</span></div>
+                      <div class="line"><strong>右部展开</strong><span>专项方向</span></div>
+                    </section>
+                  </div>
+                </div>
+              </main>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="teacher">
+      <div class="sh">
+        <div>
+          <h2>教师端原型结构</h2>
+          <p>教师端已经收口为“教学看板、课程班级、任务编排、批阅复盘”4 页，不再按早期扩展稿展开。</p>
+        </div>
+        <div class="secb teacher">教师教学中枢 / 4 页</div>
+      </div>
+      <div class="grid">
+        <article class="card">
+          <div class="ph">
+            <h3>5. 教学看板</h3>
+            <p>当前教师首页。展示班级整体状态、提交率、平均分与共性问题，是教师端叙事起点。</p>
+            <div class="chips"><span class="chip">提交率</span><span class="chip">平均分</span><span class="chip">问题摘要</span></div>
+          </div>
+          <div class="mk">
+            <div class="desk">
+              <aside class="side teacher">
+                <strong>智慧书法</strong><p>教师教学中枢</p>
+                <div class="si active teacher">教学看板</div><div class="si">课程班级</div><div class="si">任务编排</div><div class="si">批阅复盘</div>
+              </aside>
+              <main class="work">
+                <div class="stage teacher"><div class="brandline">智慧书法</div><h4>从课堂组织到结果复盘的教学闭环</h4><p>这里不是普通数据面板，而是答辩中的教学中枢。</p></div>
+                <div class="panel">
+                  <div class="ey2">教学看板</div><h4>先讲班级整体状态，再讲结果回流</h4><p>真实页面会在这里展示班级人数、任务完成情况、平均分与共性问题摘要。</p>
+                  <div class="metrics four">
+                    <div class="metric"><span>平均分</span><strong>78</strong></div>
+                    <div class="metric"><span>提交率</span><strong>82%</strong></div>
+                    <div class="metric"><span>累计作业</span><strong>48</strong></div>
+                    <div class="metric"><span>已评测</span><strong>44</strong></div>
+                  </div>
+                  <div class="split">
+                    <section class="block">
+                      <div class="bh"><h5>班级整体状态</h5><span>课堂概况</span></div>
+                      <div class="line"><strong>56 人</strong><span>班级人数</span></div>
+                      <div class="line"><strong>12 项</strong><span>已发任务</span></div>
+                      <div class="line"><strong>春季 1 班</strong><span>当前班级</span></div>
+                    </section>
+                    <section class="block">
+                      <div class="bh"><h5>问题与报告摘要</h5><span>复盘重点</span></div>
+                      <div class="line"><strong>左右结构偏窄</strong><span>共性问题</span></div>
+                      <div class="line"><strong>重心不稳</strong><span>次级问题</span></div>
+                      <div class="line"><strong>继续专项训练</strong><span>建议方向</span></div>
+                    </section>
+                  </div>
+                </div>
+              </main>
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="ph">
+            <h3>6. 课程班级</h3>
+            <p>当前课程班级页。创建课程、班级和邀请结构，是整个教学流程的组织起点。</p>
+            <div class="chips"><span class="chip">课程创建</span><span class="chip">班级创建</span><span class="chip">邀请码</span></div>
+          </div>
+          <div class="mk">
+            <div class="desk">
+              <aside class="side teacher">
+                <strong>智慧书法</strong><p>教师教学中枢</p>
+                <div class="si">教学看板</div><div class="si active teacher">课程班级</div><div class="si">任务编排</div><div class="si">批阅复盘</div>
+              </aside>
+              <main class="work">
+                <div class="stage teacher"><div class="brandline">智慧书法</div><h4>先建课程，再建班级，把试点结构搭起来</h4><p>课程和班级建好后，后面的任务发布和数据回流才有稳定归属。</p></div>
+                <div class="panel">
+                  <div class="ey2">课程班级</div><h4>组织教学结构，而不是只列数据</h4>
+                  <div class="split">
+                    <section class="block">
+                      <div class="bh"><h5>课程信息</h5><span>课程层级</span></div>
+                      <div class="line"><strong>书法通识课</strong><span>课程名称</span></div>
+                      <div class="line"><strong>2026 春季</strong><span>所属学期</span></div>
+                      <div class="line"><strong>可继续扩班</strong><span>当前状态</span></div>
+                    </section>
+                    <section class="block">
+                      <div class="bh"><h5>班级信息</h5><span>班级层级</span></div>
+                      <div class="line"><strong>春季 1 班</strong><span>班级名称</span></div>
+                      <div class="line"><strong>CALLI2026</strong><span>邀请码</span></div>
+                      <div class="line"><strong>28 人</strong><span>当前人数</span></div>
+                    </section>
+                  </div>
+                </div>
+              </main>
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="ph">
+            <h3>7. 任务编排</h3>
+            <p>当前教师任务页。把教学目标拆成标准化数字任务，是教师端关键操作页之一。</p>
+            <div class="chips"><span class="chip">练习字</span><span class="chip">评分权重</span><span class="chip">发布任务</span></div>
+          </div>
+          <div class="mk">
+            <div class="desk">
+              <aside class="side teacher">
+                <strong>智慧书法</strong><p>教师教学中枢</p>
+                <div class="si">教学看板</div><div class="si">课程班级</div><div class="si active teacher">任务编排</div><div class="si">批阅复盘</div>
+              </aside>
+              <main class="work">
+                <div class="stage teacher"><div class="brandline">智慧书法</div><h4>把教学目标写进任务，让训练真正可执行</h4><p>任务页负责把教师意图转成学生端能理解、后端能记录、评测能调用的结构化任务。</p></div>
+                <div class="panel">
+                  <div class="ey2">任务编排</div><h4>结构、重心、笔顺，一次说明白</h4>
+                  <div class="split">
+                    <section class="block">
+                      <div class="bh"><h5>任务配置</h5><span>内容设置</span></div>
+                      <div class="line"><strong>欧楷基础训练</strong><span>任务名称</span></div>
+                      <div class="line"><strong>永 / 天 / 木</strong><span>练习字</span></div>
+                      <div class="line"><strong>今晚 21:00</strong><span>截止时间</span></div>
+                    </section>
+                    <section class="block">
+                      <div class="bh"><h5>评分权重</h5><span>评测维度</span></div>
+                      <div class="line"><strong>40%</strong><span>结构</span></div>
+                      <div class="line"><strong>30%</strong><span>重心</span></div>
+                      <div class="line"><strong>30%</strong><span>笔顺</span></div>
+                    </section>
+                  </div>
+                </div>
+              </main>
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="ph">
+            <h3>8. 批阅复盘</h3>
+            <p>当前教师批阅页。说明系统如何承接“AI 初评 + 教师复核”的双层教学反馈机制。</p>
+            <div class="chips"><span class="chip">AI 初评</span><span class="chip">教师评语</span><span class="chip">复盘结果</span></div>
+          </div>
+          <div class="mk">
+            <div class="desk">
+              <aside class="side teacher">
+                <strong>智慧书法</strong><p>教师教学中枢</p>
+                <div class="si">教学看板</div><div class="si">课程班级</div><div class="si">任务编排</div><div class="si active teacher">批阅复盘</div>
+              </aside>
+              <main class="work">
+                <div class="stage teacher"><div class="brandline">智慧书法</div><h4>保留 AI 初评，也保留教师终评的专业判断</h4><p>这一页强调教师如何在系统建议基础上进行复核、点评和教学回流。</p></div>
+                <div class="panel">
+                  <div class="ey2">批阅复盘</div><h4>让“评测结果”变成“教学反馈”</h4>
+                  <div class="split">
+                    <section class="block">
+                      <div class="bh"><h5>AI 初评结果</h5><span>系统识别</span></div>
+                      <div class="line"><strong>86</strong><span>结构</span></div>
+                      <div class="line"><strong>80</strong><span>重心</span></div>
+                      <div class="line"><strong>87</strong><span>笔顺</span></div>
+                    </section>
+                    <section class="block">
+                      <div class="bh"><h5>教师复盘意见</h5><span>教师终评</span></div>
+                      <div class="line"><strong>右部偏窄</strong><span>主要问题</span></div>
+                      <div class="line"><strong>继续专项练习</strong><span>建议动作</span></div>
+                      <div class="line"><strong>确认批阅</strong><span>最终操作</span></div>
+                    </section>
+                  </div>
+                </div>
+              </main>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="foot" id="notes">
+      <h2>本次修订说明</h2>
+      <p>
+        这一版“页面原型结构.html”已经从早期偏概念型、多扩展页的展示稿，收口为与当前仓库真实前端一致的结构稿。
+        现在它更适合给答辩 PPT 截图、配合“页面原型与讲解”文档统一讲解顺序，以及作为继续微调前端界面的结构基线。
+      </p>
+      <div class="fgrid">
+        <div class="fi"><strong>删掉了什么</strong>字帖馆、单字详情、教师数据报告等当前前端未落地的早期扩展页。</div>
+        <div class="fi"><strong>保留了什么</strong>与现有导航一致的 8 个核心页面，以及学生闭环和教师闭环两条主线。</div>
+        <div class="fi"><strong>更适合答辩的地方</strong>页面命名、结构描述和当前系统实现已经一致，不会再讲回旧方案。</div>
+        <div class="fi"><strong>下一步怎么用</strong>直接在浏览器里打开这份 HTML，用于截图、讲解和与当前前端对照微调。</div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

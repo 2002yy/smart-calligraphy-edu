@@ -1,0 +1,35 @@
+{
+  "pages": [
+    {
+      "path": "pages/home/index",
+      "style": {
+        "navigationBarTitleText": "首页"
+      }
+    },
+    {
+      "path": "pages/task-detail/index",
+      "style": {
+        "navigationBarTitleText": "任务详情"
+      }
+    },
+    {
+      "path": "pages/upload-evaluate/index",
+      "style": {
+        "navigationBarTitleText": "上传评测"
+      }
+    },
+    {
+      "path": "pages/evaluate-result/index",
+      "style": {
+        "navigationBarTitleText": "评测结果"
+      }
+    },
+    {
+      "path": "pages/growth/index",
+      "style": {
+        "navigationBarTitleText": "成长档案"
+      }
+    }
+  ]
+}
+

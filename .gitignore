@@ -1,0 +1,14 @@
+node_modules/
+dist/
+*.db
+*.db-journal
+*.log
+.env
+.env.local
+storage/
+.vite/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+test_smart_calligraphy.db
