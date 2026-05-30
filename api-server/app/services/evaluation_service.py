@@ -67,19 +67,25 @@ class EvaluationService:
 
     @staticmethod
     def _build_mock_result(homework_id: int, task, image_url: str = "") -> dict:
-        # Mock 评分：使用 0-10 分制（保留一位小数）
+        # Mock 评分：使用 0-10 分制（保留一位小数），校准锚点与 Qwen prompt 对齐
         base = float((82 + homework_id % 8) / 10)
         structure_score = round(min(10, base + task.structure_weight * 0.008), 1)
         center_score = round(min(10, base + task.center_weight * 0.006 - 0.15), 1)
         stroke_order_score = round(min(10, base + task.stroke_order_weight * 0.007), 1)
         total_score = round((structure_score + center_score + stroke_order_score) / 3, 1)
 
-        if total_score < 8.8:
-            tags = ["center drift", "weak finish"]
-            advice = "Stabilize the center first, then make the finishing stroke cleaner."
+        if total_score >= 8.5:
+            tags = ["结构工整", "重心稳当", "笔法到位"]
+            advice = "整体书写不错，结构稳定性和重心控制都比较好。注意主笔的舒展度和收放关系，多加练习让笔画更加流畅自然。"
+        elif total_score >= 7.0:
+            tags = ["结构基本正确", "重心略偏", "笔顺有待加强"]
+            advice = "结构大体正确，但中宫略松，重心控制还有一些不稳定的地方。建议重点练习中宫收紧，注意各笔画之间的呼应关系。"
+        elif total_score >= 5.0:
+            tags = ["中宫松散", "重心不稳", "运笔生硬"]
+            advice = "整体结构偏松散，重心不稳的问题比较明显。建议先从基本笔画入手，练习横平竖直，再逐步过渡到单字结构训练。"
         else:
-            tags = ["stable structure", "clear main stroke"]
-            advice = "Keep the main stroke stable and tighten the smaller side structure."
+            tags = ["结构失衡", "笔顺有误", "基础薄弱"]
+            advice = "基础笔画和结构都需要从头打基础。建议从基本点画开始练习，先掌握正确的笔顺规则，再练习简单字形。"
 
         region_count = 3 + homework_id % 4
         char_examples = [
