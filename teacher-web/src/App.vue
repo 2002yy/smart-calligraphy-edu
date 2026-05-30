@@ -14,8 +14,8 @@ const { loginForm, user, loading, message, noticeType, courses, classes, selecte
   storeToRefs(store);
 
 const navItems = [
-  { to: "/dashboard", label: "教学看板", hint: "查看班级状态与结果回流" },
-  { to: "/manage", label: "课程班级", hint: "创建课程与试点班级" },
+  { to: "/dashboard", label: "教学看板", hint: "查看班级学习状态与统计数据" },
+  { to: "/manage", label: "课程班级", hint: "创建课程与班级" },
   { to: "/tasks", label: "任务编排", hint: "发布书法训练任务" },
   { to: "/reviews", label: "批阅复盘", hint: "查看教师评语与复核结果" }
 ];
@@ -24,7 +24,7 @@ const currentNav = computed(() => navItems.find((item) => item.to === route.path
 const breadcrumbs = computed(() => ["教师端", "智慧书法", currentNav.value.label, activeClassName.value]);
 const stageTitle = computed(() => {
   if (currentNav.value.to === "/dashboard") return "从课堂组织到结果复盘的教学闭环";
-  if (currentNav.value.to === "/manage") return "先建课程，再建班级，把试点教学结构搭起来";
+  if (currentNav.value.to === "/manage") return "先建课程，再建班级，把教学结构组织好";
   if (currentNav.value.to === "/tasks") return "把教学目标写进任务，让训练要求真正可执行";
   return "保留 AI 初评，也保留教师终评的专业判断";
 });
@@ -34,14 +34,14 @@ const stageCopy = computed(() => {
   }
 
   if (currentNav.value.to === "/manage") {
-    return "把课程、班级和邀请关系先搭好，后面的任务发布、学生提交、评测回流与成长报告才有稳定的业务归属。";
+    return "在这里创建课程和班级，组织教学结构，管理学生。";
   }
 
   if (currentNav.value.to === "/tasks") {
-    return "任务页负责把教师意图转成学生可执行的练习要求，包括练习字、评分维度、提交时限和课堂说明。";
+    return "在这里发布训练任务，设置练习字、评分维度和截止时间，让学生明确练习目标。";
   }
 
-  return "批阅页用于强调系统不是只给分，而是让 AI 评测与教师复核协同工作，最终形成可解释、可追踪的教学反馈。";
+  return "在这里查看 AI 初评结果，填写教师评语与复核分数，形成完整的教学反馈。";
 });
 
 const toastVisible = ref(false);

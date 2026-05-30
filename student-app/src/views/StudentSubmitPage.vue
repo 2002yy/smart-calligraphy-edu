@@ -152,7 +152,7 @@ function handleFileChange(event: Event) {
     </div>
 
     <CollapsibleIntro storageKey="intro-submit">
-      这一页不只是"传一张图"，而是把学生完成任务后的关键反馈组织成完整过渡：先上传作品，再确认提交成功，最后进入评测结果回看。
+      在这里上传书法作品图片，提交作业并触发 AI 评测，查看评分结果和练习建议。
     </CollapsibleIntro>
 
     <div v-if="loading && !user && !selectedTask && !latestHomework" class="submit-layout">

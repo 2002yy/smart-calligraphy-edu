@@ -83,7 +83,7 @@ function hasClassNameError() {
         </div>
 
         <p class="section-copy">
-          建议用”教学主题 + 课程属性”的方式命名课程，例如”智慧书法素养提升课”，方便区分不同课程。
+          建议命名时区分学期或班级类型，例如”智慧书法素养提升课—2026春季班”。
         </p>
 
         <label class="field-block">
@@ -133,7 +133,7 @@ function hasClassNameError() {
         </div>
 
         <p class="section-copy">
-          班级是学生加入与任务发布的直接对象。建议名称中带上学期信息，例如”2026春季班”。
+          班级按课程创建，带上学期的名称方便管理，例如”2026春季班”。
         </p>
 
         <label class="field-block">

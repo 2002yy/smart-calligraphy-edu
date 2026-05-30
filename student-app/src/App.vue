@@ -25,15 +25,15 @@ const stageTitle = computed(() => {
   if (currentNav.value.to === "/overview") return "从领任务到看反馈，一条学习链路一次讲清";
   if (currentNav.value.to === "/tasks") return "先知道练什么，再知道为什么练";
   if (currentNav.value.to === "/submit") return "把作品提交与 AI 评测放进同一条动作链";
-  return "把每一次练习，沉淀成看得见的成长";
+  return "把每一次练习，记录成看得见的成长";
 });
 const stageCopy = computed(() => {
   if (currentNav.value.to === "/overview") {
-    return "学生端不是信息堆砌页面，而是围绕练习目标、提交动作、智能反馈和成长沉淀组织的一条真实学习路径。";
+    return "在学习总览中查看当前任务、班级状态和最近一次学习反馈，快速了解自己的学习进度。";
   }
 
   if (currentNav.value.to === "/tasks") {
-    return "任务中心负责把教师要求转成学生能理解、能执行的训练目标，让练习字、评分维度和截止时间一目了然。";
+    return "在任务中心查看教师发布的训练任务，了解练习字、评分维度和截止时间。";
   }
 
   if (currentNav.value.to === "/submit") {

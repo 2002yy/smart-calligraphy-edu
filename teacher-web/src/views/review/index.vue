@@ -86,7 +86,7 @@ function formatDate(value?: string | null) {
     </div>
 
     <CollapsibleIntro storageKey="intro-review">
-      这一区不是简单的结果列表，而是围绕一份作业形成完整复盘：先看学生提交了什么，再看 AI 如何评分，最后看教师如何复核与落点评语。
+      查看学生提交的作业、AI 评分结果和教师评语，完成作业批阅与反馈。
     </CollapsibleIntro>
 
     <section class="filter-bar">
@@ -222,7 +222,7 @@ function formatDate(value?: string | null) {
                 <div v-else class="drawer-image-empty">暂无可预览图片</div>
               </div>
               <p class="drawer-caption">
-                {{ activeReview.compare_image_url ? "当前展示评测回看图，方便教师快速复盘结构与笔势问题。" : "当前展示学生提交原图，可配合右侧上下文完成点评。" }}
+                {{ activeReview.compare_image_url ? "评测回看图" : "学生提交原图" }}
               </p>
             </section>
 

@@ -46,22 +46,22 @@ defineProps<{
         <article class="metric-block accent" style="--i: 0">
           <span>班级平均分</span>
           <AnimatedCount :value="dashboard.avg_score" />
-          <small>用于说明当前班级整体书写表现。</small>
+          <small>班级整体书写表现的平均分。</small>
         </article>
         <article class="metric-block" style="--i: 1">
           <span>作业提交率</span>
           <strong>{{ Math.round(dashboard.submit_rate * 100) }}%</strong>
-          <small>反映学生参与度和任务完成度。</small>
+          <small>学生参与度和任务完成情况。</small>
         </article>
         <article class="metric-block" style="--i: 2">
           <span>累计作业数</span>
           <AnimatedCount :value="dashboard.homework_count" />
-          <small>表示已进入系统的作品总量。</small>
+          <small>学生提交到系统的作业总数。</small>
         </article>
         <article class="metric-block" style="--i: 3">
           <span>已完成评测</span>
           <AnimatedCount :value="dashboard.evaluated_count" />
-          <small>体现智能评测的回流覆盖情况。</small>
+          <small>已经完成智能评测的作业数量。</small>
         </article>
       </div>
 

@@ -21,13 +21,13 @@ const recentLabels = computed(() => growth.value?.recent_labels ?? []);
     <div class="panel-head">
       <div>
         <p class="eyebrow">成长档案</p>
-        <h2>把每一次练习沉淀成可解释的成长</h2>
+        <h2>把每一次练习变成看得见的进步</h2>
       </div>
       <span class="badge">学生个人画像</span>
     </div>
 
     <CollapsibleIntro storageKey="intro-growth">
-      成长档案不是"成绩展示页"，而是用来说明系统如何持续记录学习过程、提炼问题标签，并形成阶段性的个性化反馈。
+      成长档案记录每一次练习的评分、问题标签和趋势变化，帮助你看到自己的进步。
     </CollapsibleIntro>
 
     <template v-if="loading && !growth">
@@ -61,7 +61,7 @@ const recentLabels = computed(() => growth.value?.recent_labels ?? []);
         <article class="metric-block" style="--i: 1">
           <span>参与班级数</span>
           <AnimatedCount :value="classes.length" />
-          <small>体现当前学习场景覆盖情况。</small>
+          <small>当前参与学习的班级数量。</small>
         </article>
         <article class="metric-block" style="--i: 2">
           <span>最近作业</span>

@@ -22,7 +22,7 @@ const { user, loading, classes, tasks, growth, selectedTask, latestHomework, eva
     </div>
 
     <CollapsibleIntro storageKey="intro-overview">
-      学生首页不应该只是几个数字，而应该先交代"我在哪个学习阶段"。所以这里先给出班级、任务与得分状态，再顺势过渡到任务、提交和成长档案。
+      这里展示你的班级数量、当前任务数和平均得分，快速了解学习状态。
     </CollapsibleIntro>
 
     <template v-if="loading">
@@ -91,7 +91,7 @@ const { user, loading, classes, tasks, growth, selectedTask, latestHomework, eva
         <section class="story-block">
           <div class="section-head">
             <h3>最近一次学习反馈</h3>
-            <span>系统回流</span>
+            <span>最近反馈</span>
           </div>
           <div class="reading-line">
             <b>{{ latestHomework?.status || "暂无提交记录" }}</b>

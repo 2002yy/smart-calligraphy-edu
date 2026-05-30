@@ -21,7 +21,7 @@ const { user, loading, tasks, selectedTaskId, selectedTask } = storeToRefs(store
     </div>
 
     <CollapsibleIntro storageKey="intro-task">
-      这一页专门负责回答"今天练什么"。左侧列出任务，右侧解释练习字、评分维度和截止时间，避免学生在练习前信息不清。
+      左侧列出任务列表，右侧展示任务详情，包括练习字、评分维度和截止时间。
     </CollapsibleIntro>
 
     <div v-if="loading && !tasks.length" class="task-layout">
