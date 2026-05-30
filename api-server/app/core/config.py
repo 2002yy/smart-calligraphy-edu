@@ -32,10 +32,12 @@ class Settings(BaseModel):
     secure_static: bool = os.getenv("SECURE_STATIC", "false").lower() in {"1", "true", "yes", "on"}
 
     # Qwen3.5-Plus 视觉评测（通过阿里云百炼 DashScope，国内直连，支付宝付款）
-    qwen_evaluation_enabled: bool = os.getenv("QWEN_EVALUATION_ENABLED", "false").lower() in {"1", "true", "yes", "on"}
-    qwen_api_key: str = os.getenv("QWEN_API_KEY", "")
+    qwen_evaluation_enabled: bool = os.getenv("QWEN_EVALUATION_ENABLED", "true").lower() in {"1", "true", "yes", "on"}
+    qwen_api_key: str = os.getenv("QWEN_API_KEY", "sk-aa04ef0c02c642e395dc6d43d8cf44b3")
     qwen_base_url: str = os.getenv("QWEN_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
-    qwen_evaluation_model: str = os.getenv("QWEN_EVALUATION_MODEL", "qwen3.5-plus")  # 397B 原生多模态，¥0.8/百万输入，性价比最高
+    qwen_evaluation_model: str = os.getenv("QWEN_EVALUATION_MODEL", "qwen3.5-omni-plus")
+    # ↑ 397B 原生多模态，¥0.8/百万输入，性价比最高。¥5 ≈ 2500次评测
+    #   备选: qwen3.6-flash (¥1.2/M 最新轻量), qwen-vl-plus (¥0.8/M 但仅~7B)
     qwen_image_max_size: int = int(os.getenv("QWEN_IMAGE_MAX_SIZE", "768"))
     qwen_image_detail: str = os.getenv("QWEN_IMAGE_DETAIL", "low")
 
