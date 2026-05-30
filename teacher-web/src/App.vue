@@ -30,7 +30,7 @@ const stageTitle = computed(() => {
 });
 const stageCopy = computed(() => {
   if (currentNav.value.to === "/dashboard") {
-    return "这里不是普通数据面板，而是答辩中的教学中枢。你可以从班级提交率、共性问题和重点关注学生讲清整套系统如何服务真实课堂。";
+    return "这里是教学看板，展示班级的作业提交率、平均得分和共性问题，帮助教师快速掌握课堂整体情况。";
   }
 
   if (currentNav.value.to === "/manage") {
@@ -82,7 +82,7 @@ onMounted(() => {
         <h1>智慧书法</h1>
         <p class="rail-role">教师教学中枢</p>
         <p class="rail-copy">
-          面向大创答辩与校内试点的智慧书法教学软件。教师端围绕“建课、建班、发任务、看评测、做复盘”组织完整教学流程。
+          智慧书法教学平台。教师端围绕”建课、建班、发任务、看评测、做复盘”组织完整教学流程。
         </p>
       </div>
 

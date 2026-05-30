@@ -61,7 +61,7 @@ function hasPracticeCharsError() {
     </div>
 
     <CollapsibleIntro storageKey="intro-task">
-      任务页负责把教师的教学意图翻译成学生可执行的要求。答辩时建议强调：课程与班级负责业务归属，任务页负责把"练什么、怎么评、何时交"一次说清。
+      在这里发布训练任务，明确告诉学生"练什么、怎么评、何时交"，让每一次练习都有清晰的目标。
     </CollapsibleIntro>
 
     <div v-if="loading && !courses.length && !tasks.length" class="task-layout">
@@ -191,7 +191,7 @@ function hasPracticeCharsError() {
 
     <section class="after-block">
       <strong>下一步建议</strong>
-      <p>任务发布完成后，切换到学生端提交作品并触发评测，再回到教师端看板与批阅页，能形成最完整的演示闭环。</p>
+      <p>任务发布完成后，学生就可以在"学生端"提交作品并触发 AI 评测，教师可以在看板和批阅页看到结果。</p>
     </section>
   </section>
 </template>

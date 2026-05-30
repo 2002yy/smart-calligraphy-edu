@@ -66,7 +66,7 @@ const recentLabels = computed(() => growth.value?.recent_labels ?? []);
         <article class="metric-block" style="--i: 2">
           <span>最近作业</span>
           <strong>{{ latestHomework?.id ?? "--" }}</strong>
-          <small>方便答辩时解释最近一次联调记录。</small>
+          <small>最近提交并评测的练习记录。</small>
         </article>
       </div>
 
@@ -102,13 +102,13 @@ const recentLabels = computed(() => growth.value?.recent_labels ?? []);
 
         <section class="story-block">
           <div class="section-head">
-            <h3>答辩可讲重点</h3>
-            <span>PPT 话术</span>
+            <h3>学习建议</h3>
+            <span>持续进步</span>
           </div>
           <ul class="speech-list">
-            <li>学生端不是一次性任务展示，而是把任务、提交、评测和成长沉淀串成完整学习路径。</li>
-            <li>平均分和问题标签可以作为阶段性学习结果，为教师后续因材施教提供依据。</li>
-            <li>这一页适合强调系统在"数据留痕"和"个性化反馈"上的产品价值。</li>
+            <li>坚持每周完成至少一次书法练习，系统会自动记录你的进步轨迹。</li>
+            <li>评分趋势可以直观地看到自己在结构、重心和笔顺上的变化。</li>
+            <li>多看每次评测后的练习建议，针对性改进最能提升水平。</li>
           </ul>
         </section>
       </div>

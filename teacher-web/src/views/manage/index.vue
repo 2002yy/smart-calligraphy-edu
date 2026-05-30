@@ -57,7 +57,7 @@ function hasClassNameError() {
     </div>
 
     <CollapsibleIntro storageKey="intro-manage">
-      这里负责建立课程与班级的业务归属。建议答辩时先创建课程，再创建班级，这样后续任务、作业、评测和报告都会有清晰的挂载关系。
+      先创建课程，再创建班级，这样后续任务、作业、评测和报告都会有清晰的对应关系。
     </CollapsibleIntro>
 
     <div v-if="loading && !courses.length" class="form-grid">
@@ -83,7 +83,7 @@ function hasClassNameError() {
         </div>
 
         <p class="section-copy">
-          建议用“教学主题 + 课程属性”的方式命名课程，例如“智慧书法素养提升课”，方便在答辩中快速说明课程定位。
+          建议用”教学主题 + 课程属性”的方式命名课程，例如”智慧书法素养提升课”，方便区分不同课程。
         </p>
 
         <label class="field-block">
@@ -133,7 +133,7 @@ function hasClassNameError() {
         </div>
 
         <p class="section-copy">
-          班级是学生加入与任务发布的直接对象。建议名称中带上“试点班”“实验班”或具体学期，便于演示业务真实性。
+          班级是学生加入与任务发布的直接对象。建议名称中带上学期信息，例如”2026春季班”。
         </p>
 
         <label class="field-block">
@@ -182,7 +182,7 @@ function hasClassNameError() {
 
     <section class="after-block">
       <strong>下一步建议</strong>
-      <p>课程和班级建好后，直接进入“任务编排”发布训练任务，再回到“教学看板”观察数据回流，会更适合答辩演示顺序。</p>
+      <p>课程和班级建好后，可以进入”任务编排”发布训练任务，再回到”教学看板”查看学生的学习反馈。</p>
     </section>
   </section>
 </template>

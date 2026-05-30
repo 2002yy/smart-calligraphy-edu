@@ -24,7 +24,7 @@ defineProps<{
     </div>
 
     <CollapsibleIntro storageKey="intro-dashboard">
-      这一页不是简单的数据堆叠，而是教师复盘课堂的起点。建议答辩时从"班级整体状态"讲起，再过渡到共性问题与报告摘要，形成完整的教学闭环叙事。
+      这里展示班级整体学习状态，包括作业提交率、平均得分和共性问题，方便教师跟进教学效果。
     </CollapsibleIntro>
 
     <template v-if="loading && !dashboard">

@@ -234,7 +234,7 @@ function handleFileChange(event: Event) {
             <div class="preview-frame result-frame">
               <img :src="resultImageUrl" alt="评测结果回看图" />
             </div>
-            <small class="field-hint">上传预览已自动切换为结果回看图，方便答辩时展示"提交后如何被系统分析"。</small>
+            <small class="field-hint">上传预览已自动切换为结果回看图，展示了系统对作品的分析结果。</small>
           </section>
         </transition>
 
