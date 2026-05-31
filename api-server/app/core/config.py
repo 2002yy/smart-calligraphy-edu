@@ -1,6 +1,19 @@
 import os
+from pathlib import Path
 
 from pydantic import BaseModel
+
+# 自动加载 .env 文件（如果存在）
+_env_path = Path(__file__).resolve().parents[2] / ".env"
+if _env_path.exists():
+    with open(_env_path) as _f:
+        for _line in _f:
+            _line = _line.strip()
+            if _line and not _line.startswith("#") and "=" in _line:
+                _k, _v = _line.split("=", 1)
+                _k, _v = _k.strip(), _v.strip()
+                if not os.getenv(_k):
+                    os.environ[_k] = _v
 
 
 class Settings(BaseModel):
@@ -31,9 +44,10 @@ class Settings(BaseModel):
     demo_password: str = os.getenv("DEMO_PASSWORD", "123456")
     secure_static: bool = os.getenv("SECURE_STATIC", "false").lower() in {"1", "true", "yes", "on"}
 
-    # Qwen3.5-Plus 视觉评测（通过阿里云百炼 DashScope，国内直连，支付宝付款）
-    qwen_evaluation_enabled: bool = os.getenv("QWEN_EVALUATION_ENABLED", "true").lower() in {"1", "true", "yes", "on"}
-    qwen_api_key: str = os.getenv("QWEN_API_KEY", "sk-aa04ef0c02c642e395dc6d43d8cf44b3")
+    # Qwen3.5-Plus 视觉评测（通过阿里云百炼 DashScope）
+    # 启用方法：复制 .env.example 为 .env，设置 QWEN_API_KEY
+    qwen_evaluation_enabled: bool = os.getenv("QWEN_EVALUATION_ENABLED", "false").lower() in {"1", "true", "yes", "on"}
+    qwen_api_key: str = os.getenv("QWEN_API_KEY", "")
     qwen_base_url: str = os.getenv("QWEN_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
     qwen_evaluation_model: str = os.getenv("QWEN_EVALUATION_MODEL", "qwen3.5-omni-plus")
     # ↑ 397B 原生多模态，¥0.8/百万输入，性价比最高。¥5 ≈ 2500次评测

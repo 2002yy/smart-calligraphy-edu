@@ -2,9 +2,16 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.services.openai_evaluation_service import CalligraphyScoreOutput, OpenAIEvaluationService
+from app.services.qwen_evaluation_service import QwenEvaluationService
 
 
 def test_teacher_workflow_end_to_end():
+    from unittest.mock import patch
+    with patch.object(QwenEvaluationService, "is_configured", return_value=False):
+        _run_e2e()
+
+
+def _run_e2e():
     with TestClient(app) as client:
         login_response = client.post(
             "/api/v1/auth/login",
@@ -134,9 +141,18 @@ def test_homework_upload_and_openai_switch(monkeypatch):
         assert task_response.status_code == 200
         task_id = task_response.json()["data"]["id"]
 
+        # 1x1 有效 PNG（PIL 生成的测试用最小图片）
+        import io as _io
+        try:
+            from PIL import Image as _PIL
+            _buf = _io.BytesIO()
+            _PIL.new("RGB", (1, 1), color=255).save(_buf, "PNG")
+            _min_png = _buf.getvalue()
+        except ImportError:
+            _min_png = b""
         upload_response = client.post(
             "/api/v1/homework/upload",
-            files={"file": ("demo.png", b"fake-image-bytes", "image/png")},
+            files={"file": ("demo.png", _min_png, "image/png")},
             data={"task_id": str(task_id), "student_id": "2"},
         )
         assert upload_response.status_code == 200

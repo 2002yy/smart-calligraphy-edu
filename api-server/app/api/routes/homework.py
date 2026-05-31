@@ -1,10 +1,22 @@
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+import io
+from pathlib import Path
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.schemas.common import APIResponse
 from app.schemas.homework import HomeworkRead, HomeworkSubmitRequest, HomeworkUploadRead
 from app.services import HomeworkService
+
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
+
+ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
+ALLOWED_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp"}
+MAX_UPLOAD_BYTES = 5 * 1024 * 1024
 
 router = APIRouter()
 
@@ -21,7 +33,26 @@ def upload_homework(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
+    # 校验文件类型
+    suffix = (Path(file.filename) if file.filename else Path("")).suffix.lower()
+    if suffix not in ALLOWED_SUFFIXES:
+        raise HTTPException(status_code=400, detail=f"不支持的文件格式：{suffix}，仅支持 {ALLOWED_SUFFIXES}")
+    if file.content_type and file.content_type not in ALLOWED_CONTENT_TYPES:
+        raise HTTPException(status_code=400, detail=f"不支持的 MIME 类型：{file.content_type}")
+
+    # 校验文件大小
     file_bytes = file.file.read()
+    if len(file_bytes) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=400, detail=f"文件过大（最大 {MAX_UPLOAD_BYTES//1024//1024}MB）")
+
+    # 验证图像有效性
+    if Image is not None:
+        try:
+            img = Image.open(io.BytesIO(file_bytes))
+            img.verify()
+        except Exception:
+            raise HTTPException(status_code=400, detail="文件不是有效的图片，请重新选择")
+
     data = HomeworkUploadRead(**HomeworkService.upload_homework(db, task_id, student_id, file.filename, file_bytes))
     return APIResponse[HomeworkUploadRead](data=data)
 
