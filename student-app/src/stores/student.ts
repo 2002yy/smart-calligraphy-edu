@@ -219,7 +219,7 @@ export const useStudentStore = defineStore("student", () => {
     if (provider === "openai") {
       setNotice("正在调用 OpenAI 生成评分结果，请稍候（此为旧版评测，建议使用 Qwen）。", "info");
     } else if (provider === "qwen") {
-      setNotice("正在通过阿里云百炼 Qwen3.5-Plus 评测书法作品，请稍候。", "info");
+      setNotice("正在通过阿里云百炼 Qwen3.5-omni-plus 评测书法作品，请稍候。", "info");
     } else {
       setNotice("正在生成 AI 评测结果，请稍候。", "info");
     }

@@ -2,7 +2,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.repositories import EvaluationRepository, HomeworkRepository, TaskRepository
+from app.repositories import EvaluationRepository, HomeworkRepository, ReviewRepository, TaskRepository
 from app.schemas.evaluation import EvaluationProvider
 from app.services.file_storage_service import FileStorageService
 from app.services.openai_evaluation_service import OpenAIEvaluationService  # DEPRECATED
@@ -67,11 +67,11 @@ class EvaluationService:
 
     @staticmethod
     def _build_mock_result(homework_id: int, task, image_url: str = "") -> dict:
-        # Mock 评分：使用 0-10 分制（保留一位小数），校准锚点与 Qwen prompt 对齐
-        base = float((82 + homework_id % 8) / 10)
-        structure_score = round(min(10, base + task.structure_weight * 0.008), 1)
-        center_score = round(min(10, base + task.center_weight * 0.006 - 0.15), 1)
-        stroke_order_score = round(min(10, base + task.stroke_order_weight * 0.007), 1)
+        # Mock 评分：覆盖 1-10 完整区间，homework_id 越高分越低（模拟从好到差）
+        base = 10.0 - (homework_id % 10) * 0.85
+        structure_score = round(min(10, max(1, base + (task.structure_weight - 33) * 0.012)), 1)
+        center_score = round(min(10, max(1, base + (task.center_weight - 33) * 0.01 - 0.3)), 1)
+        stroke_order_score = round(min(10, max(1, base + (task.stroke_order_weight - 33) * 0.011)), 1)
         total_score = round((structure_score + center_score + stroke_order_score) / 3, 1)
 
         if total_score >= 8.5:
@@ -157,7 +157,7 @@ class EvaluationService:
 
     @staticmethod
     def _build_qwen_result(db: Session, homework, task) -> dict:
-        """调用 Qwen3.5-Plus 视觉模型进行书法评分，包含各维度观察与修改建议。"""
+        """调用 Qwen3.5-omni-plus 视觉模型进行书法评分，包含各维度观察与修改建议。"""
         image_path = FileStorageService.resolve_upload_url(homework.image_url)
         practice_chars = [item.character for item in TaskRepository.list_characters(db, task.id)]
         result = QwenEvaluationService.score(
@@ -330,6 +330,18 @@ class EvaluationService:
 
         homework.status = "evaluated"
         HomeworkRepository.update_homework(db, homework)
+
+        # 自动创建批阅记录，让教师端立即可见
+        existing_review = ReviewRepository.get_by_homework_id(db, homework_id)
+        if not existing_review:
+            ReviewRepository.create_review(
+                db,
+                homework_id=homework_id,
+                teacher_id=task.created_by,
+                comment=None,
+                final_score=payload["total_score"],
+                review_status="pending",
+            )
 
         return {
             "status": "finished",

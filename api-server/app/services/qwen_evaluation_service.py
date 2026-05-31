@@ -1,12 +1,12 @@
 """Qwen3.5-Plus 视觉书法评测服务
 
-通过阿里云百炼 DashScope API（OpenAI 兼容模式）调用通义千问 qwen3.5-plus 模型，
+通过阿里云百炼 DashScope API（OpenAI 兼容模式）调用通义千问 qwen3.5-omni-plus 模型，
 对上传的书法作品图片进行结构、重心、笔画维度的智能评分。
 
-模型: qwen3.5-plus — 397B 参数（激活 17B），原生多模态，2026年2月发布
+模型: qwen3.5-omni-plus — 397B 参数（激活 17B），原生多模态，2026年2月发布
 价格: ¥0.8/百万输入tokens, ¥4.8/百万输出tokens
        每次评测约 ¥0.002（含图片编码），¥5 可跑约 2500 次
-开通: 阿里云百炼控制台 -> 模型广场 -> qwen3.5-plus -> 申请 API Key
+开通: 阿里云百炼控制台 -> 模型广场 -> qwen3.5-omni-plus -> 申请 API Key
 API 文档: https://help.aliyun.com/zh/model-studio/developer-reference
 """
 
@@ -19,6 +19,7 @@ from io import BytesIO
 from pathlib import Path
 
 from fastapi import HTTPException
+from pydantic import BaseModel, Field
 
 from app.core.config import settings
 
@@ -28,8 +29,35 @@ except ImportError:  # pragma: no cover
     Image = None
 
 
+class QwenThinkingStep(BaseModel):
+    """思考步骤中的单个步骤。"""
+
+    step: int = Field(ge=1, le=10)
+    title: str = Field(min_length=1, max_length=30)
+    detail: str = Field(min_length=1, max_length=500)
+    score: float = Field(default=0.0, ge=0, le=10)
+
+
+class QwenEvaluationResult(BaseModel):
+    """Qwen 视觉模型书法评分结果。"""
+
+    total_score: float = Field(ge=0, le=10)
+    structure_score: float = Field(ge=0, le=10)
+    structure_observation: str = Field(default="")
+    structure_suggestion: str = Field(default="")
+    center_score: float = Field(ge=0, le=10)
+    center_observation: str = Field(default="")
+    center_suggestion: str = Field(default="")
+    stroke_order_score: float = Field(ge=0, le=10)
+    stroke_order_observation: str = Field(default="")
+    stroke_order_suggestion: str = Field(default="")
+    tags: list[str] = Field(default_factory=list)
+    advice: str = Field(default="", max_length=200)
+    thinking_steps: list[QwenThinkingStep] = Field(default_factory=list)
+
+
 class QwenEvaluationService:
-    """调用阿里云百炼 DashScope（qwen3.5-plus 视觉模型）进行书法评分。"""
+    """调用阿里云百炼 DashScope（qwen3.5-omni-plus 视觉模型）进行书法评分。"""
 
     @staticmethod
     def is_configured() -> bool:
@@ -107,12 +135,12 @@ class QwenEvaluationService:
                         "2. 重心 (权重 30%)：整体重心是否平稳，左右是否平衡\n"
                         "3. 笔顺 (权重 30%)：笔画顺序是否正确，运笔是否流畅\n"
                         "综合得分 = 结构×40% + 重心×30% + 笔顺×30%\n\n"
-                        "【评分锚点】(校准标准)\n"
-                        "9-10：名家水准，结构精准、重心稳当、笔法娴熟\n"
-                        "7-8 ：基本过关，结构大体正确、略有小瑕疵\n"
-                        "5-6 ：需要加强，结构松散、重心不稳或笔顺有明显问题\n"
-                        "3-4 ：基础薄弱，多个维度都需要从头练起\n"
-                        "1-2 ：几乎无训练痕迹\n\n"
+                        "【评分锚点】(必须大胆使用整个分数区间，不要只打中间分)\n"
+                        "9-10：范本级别，结构精准、重心稳当、笔法娴熟。遇到真写得好的要勇于打\n"
+                        "7-8 ：中等偏上，大部分还行但有小毛病\n"
+                        "5-6 ：不及格水平，结构松散、重心不稳或笔顺有明显问题\n"
+                        "3-4 ：很差，多个维度都需要从头练\n"
+                        "1-2 ：几乎没训练痕迹，完不成基本书写\n\n"
                         "【标签要求】\n"
                         "必须从以下列表中选出 2-4 个最贴合的标签，不要自己编造：\n"
                         "好的标签：结构工整、重心稳当、笔法到位、主笔突出、疏密得当、运笔流畅、笔画有力\n"
@@ -239,18 +267,18 @@ class QwenEvaluationService:
         if not isinstance(thinking_steps, list):
             thinking_steps = []
 
-        return {
-            "total_score": total_score,
-            "structure_score": structure_score,
-            "structure_observation": structure_observation,
-            "structure_suggestion": structure_suggestion,
-            "center_score": center_score,
-            "center_observation": center_observation,
-            "center_suggestion": center_suggestion,
-            "stroke_order_score": stroke_order_score,
-            "stroke_order_observation": stroke_order_observation,
-            "stroke_order_suggestion": stroke_order_suggestion,
-            "tags": tags,
-            "advice": advice,
-            "thinking_steps": thinking_steps,
-        }
+        return QwenEvaluationResult(
+            total_score=total_score,
+            structure_score=structure_score,
+            structure_observation=structure_observation,
+            structure_suggestion=structure_suggestion,
+            center_score=center_score,
+            center_observation=center_observation,
+            center_suggestion=center_suggestion,
+            stroke_order_score=stroke_order_score,
+            stroke_order_observation=stroke_order_observation,
+            stroke_order_suggestion=stroke_order_suggestion,
+            tags=tags,
+            advice=advice,
+            thinking_steps=thinking_steps,
+        ).model_dump()

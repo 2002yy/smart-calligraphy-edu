@@ -45,7 +45,7 @@ class Settings(BaseModel):
     secure_static: bool = os.getenv("SECURE_STATIC", "false").lower() in {"1", "true", "yes", "on"}
     cors_origins: list[str] = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174").split(",") if o.strip()]
 
-    # Qwen3.5-Plus 视觉评测（通过阿里云百炼 DashScope）
+    # Qwen3.5-omni-plus 视觉评测（通过阿里云百炼 DashScope）
     # 启用方法：复制 .env.example 为 .env，设置 QWEN_API_KEY
     qwen_evaluation_enabled: bool = os.getenv("QWEN_EVALUATION_ENABLED", "false").lower() in {"1", "true", "yes", "on"}
     qwen_api_key: str = os.getenv("QWEN_API_KEY", "")
