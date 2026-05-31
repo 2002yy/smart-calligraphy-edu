@@ -119,6 +119,20 @@ npm run dev
 └── scripts/            # 启动脚本
 ```
 
+## 安全说明
+
+### 外网演示
+外网演示时请在 `.env` 中开启以下配置：
+
+```env
+SECURE_STATIC=true                    # 防止上传图片被公开访问
+CORS_ORIGINS=https://teacher.your-domain.com,https://student.your-domain.com
+                                      # 限制允许访问的域名
+```
+
+- `SECURE_STATIC`：开启后访问 `/uploads/` 静态资源需携带有效的 Bearer token，防止作业图片被未授权访问
+- `CORS_ORIGINS`：限制跨域来源，本地默认为 5173/5174，外网演示请改为实际部署域名
+
 ## 文档
 
 - [完整项目文档](docs/DOCUMENTATION_OVERVIEW.md) — 架构、数据模型、API 清单

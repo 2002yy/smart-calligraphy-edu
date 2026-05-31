@@ -43,6 +43,7 @@ class Settings(BaseModel):
     openai_image_max_size: int = int(os.getenv("OPENAI_IMAGE_MAX_SIZE", "768"))
     demo_password: str = os.getenv("DEMO_PASSWORD", "123456")
     secure_static: bool = os.getenv("SECURE_STATIC", "false").lower() in {"1", "true", "yes", "on"}
+    cors_origins: list[str] = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174").split(",") if o.strip()]
 
     # Qwen3.5-Plus 视觉评测（通过阿里云百炼 DashScope）
     # 启用方法：复制 .env.example 为 .env，设置 QWEN_API_KEY
