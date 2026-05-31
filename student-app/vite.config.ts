@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [vue()],
   server: {
     host: "0.0.0.0",
-    port: 5175,
+    port: 5174,
     strictPort: true,
     hmr: {
       clientPort: 443
