@@ -4,23 +4,18 @@ cd /d "%~dp0..\..\student-app"
 
 echo == Public demo mode: Step 3 of 3 ==
 echo.
-echo Please confirm:
-echo 1. api-server is running
-echo 2. api-server tunnel is running
-echo 3. student-app\.env.local contains public API URL
+echo Make sure api-server, teacher-web and their tunnels are running.
 echo.
 echo Next:
-echo 1. This window starts preview
+echo 1. This window builds and starts preview
 echo 2. Open another terminal and run:
 echo    cloudflared tunnel --url http://localhost:4175
-echo 3. Open the student public URL on mobile
+echo 3. Open the student public URL on mobile/other device
 echo.
 
-if not exist ".env.local" (
-  echo [WARN] student-app\.env.local was not found.
-  echo Create .env.local first and set public API URL.
-  echo.
-)
+:: 自动生成 .env.local（外网地址）
+echo VITE_API_BASE_URL=https://twice-dealers-armstrong-quotes.trycloudflare.com > .env.local
+echo [OK] .env.local created for public demo.
 
 call npm run build
 if errorlevel 1 goto end
