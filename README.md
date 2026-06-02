@@ -3,19 +3,40 @@
 > **书法教育 AI 评测系统** — 基于 AI 视觉评测的书法教学平台
 > 本人为唯一贡献者（全栈开发），涵盖后端架构、AI 评测集成与前后端对接。
 
+> Portfolio Note:
+> This is a public course/project demo for AI-powered education software.
+> It demonstrates Vue3 dual frontend, FastAPI backend, SQLAlchemy data layer, AI vision scoring and mock fallback.
+> It is not a production education platform.
+>
+> 作品集说明：
+> 本仓库是智慧教育方向的公开课程/项目演示版，用于展示 Vue3 双端前端、FastAPI 后端、SQLAlchemy 数据层、AI 视觉评测和 Mock fallback。
+> 当前不是生产级教学平台。
+
 ---
 
 ## 1. 📌 项目一句话定位
 
 **书法教育 AI 评测系统** — 教师端管理教学流程，学生端提交书法作品并获得 AI 即时评分反馈。基于 Vue 3 + FastAPI + 阿里云百炼 qwen3.5-omni-plus 构建。
 
-> ⚠️ **定位说明**：书法教育 AI 评测展示系统，Vue 3 + FastAPI + AI 视觉评测全栈项目。
+> ⚠️ **定位说明**：书法教育 AI 评测展示系统，Vue 3 + FastAPI + AI 视觉评测全栈项目。公开课程/项目演示版。
 
 ---
 
 ## 2. 🖼️ Screenshots / Demo
 
-> 待补充截图 / 录屏
+### 核心展示页面
+
+| 模块 | 页面 | 说明 |
+|------|------|------|
+| 👨‍🏫 教师端 | 教学看板 | 任务管理、学生进度总览 |
+| 👨‍🏫 教师端 | 任务编排 | 发布书法练习任务、设定评分权重 |
+| 👩‍🎓 学生端 | 任务中心 | 待完成练习列表 |
+| 👩‍🎓 学生端 | 作品上传 | 拍照/上传书法作品 |
+| 🤖 AI 评分 | 评分结果页 | 结构/重心/笔顺三维评分 + 问题标签 |
+| 📈 成长档案 | 历史记录 | 历次评分趋势与教师评语 |
+
+> 📸 截图待补充。运行后可自行截取。
+> Demo 待录清单见 [`docs/demo/README.md`](docs/demo/README.md)
 
 ---
 
@@ -23,10 +44,11 @@
 
 | 模块 | 技术 | 说明 |
 |------|------|------|
-| **教师端** | Vue 3 + Vite + Pinia | 教学管理前端 |
-| **学生端** | Vue 3 + Vite + Pinia | 学习空间前端 |
-| **业务后端** | FastAPI + SQLAlchemy | API 服务 |
+| **教师端** | Vue 3 + Vite + Pinia | 教学管理前端（5173） |
+| **学生端** | Vue 3 + Vite + Pinia | 学习空间前端（5174） |
+| **业务后端** | FastAPI + SQLAlchemy | API 服务（8000） |
 | **AI 评测** | qwen3.5-omni-plus (DashScope) | 书法作品智能评分 |
+| **Mock 评测** | 内置 MockEvaluator | 无 API Key 时可用本地演示 |
 | **数据库** | SQLite | 本地开发 |
 | **测试** | Playwright | 端到端烟雾测试 |
 
@@ -36,26 +58,33 @@
 
 - 👨‍🏫 **教师端** — 教学流程管理、学生作品批阅、评分查看
 - 👩‍🎓 **学生端** — 作品提交、AI 即时评分反馈
-- 🤖 **AI 书法评测** — 基于视觉大模型的书法质量评分
+- 🤖 **AI 书法评测** — 基于视觉大模型的书法质量评分（结构/重心/笔顺三维）
 - 🔄 **前后端分离** — Vue 3 + FastAPI 标准架构
+- 🎭 **Mock Fallback** — 无 API Key 时使用内置 Mock 评分器演示
 
 ---
 
 ## 5. 🏗️ Architecture
 
 ```
-teacher-web ─┐
-              ├─► api-server ──► SQLite
-student-app ──┘       │
-                      └──► qwen3.5-omni-plus (DashScope)
+teacher-web (5173) ─┐
+                      ├─► api-server (8000) ──► SQLite
+student-app (5174) ──┘       │
+                              ├──► qwen3.5-omni-plus (DashScope) AI 评测
+                              └──► MockEvaluator (本地回退)
 ```
 
-| 模块 | 端口 | 说明 |
-|------|------|------|
-| `teacher-web` | 5173 | 教师教学管理前端（Vue 3） |
-| `student-app` | 5174 | 学生学习空间前端（Vue 3） |
-| `api-server` | 8000 | FastAPI 业务后端 |
-| `ai-service` | — | AI 评测服务配置 |
+### AI 评测流程
+
+```
+用户上传图片
+  → FastAPI 接收文件
+  → 读取任务/评分权重
+  → 调用 qwen3.5-omni-plus 或 Mock evaluator
+  → 返回 结构/重心/笔顺 三维分数
+  → 生成问题标签和练习建议
+  → 前端展示评分和教师复盘入口
+```
 
 ---
 
@@ -64,7 +93,7 @@ student-app ──┘       │
 ### 前置条件
 - Node.js 18+
 - Python 3.10+
-- 阿里云百炼 DashScope API Key
+- 阿里云百炼 DashScope API Key（可选，Mock 模式无需）
 
 ### 本地运行
 
@@ -72,7 +101,7 @@ student-app ──┘       │
 # ① 启动后端
 cd api-server
 pip install -r requirements.txt
-cp .env.example .env    # 编辑填入 API Key
+cp .env.example .env
 uvicorn main:app --reload --port 8000
 
 # ② 启动教师端
@@ -86,12 +115,53 @@ npm install
 npm run dev
 ```
 
+### 访问地址
+
+| 端 | 地址 |
+|------|------|
+| 教师端 | http://localhost:5173 |
+| 学生端 | http://localhost:5174 |
+| API 文档 | http://localhost:8000/docs |
+
 ---
 
-## 7. 📄 Portfolio Notes
+## 7. 🧪 Testing / Quality
+
+| 类型 | 覆盖范围 | 状态 |
+|------|---------|------|
+| 手工冒烟测试 | 教师端 + 学生端核心流程 | ✅ |
+| API 文档 | FastAPI `/docs` 自动生成 | ✅ |
+| Mock Evaluator | 无 API Key 时本地演示 | ✅ |
+| pytest | API 路由测试 | 📌 待补 |
+| Playwright | 前端端到端流程 | 📌 待补（框架已引入） |
+| Vitest | Vue 组件测试 | 📌 待补 |
+
+---
+
+## 8. 🛡️ Public Version Boundary
+
+| 项目 | 说明 |
+|------|------|
+| **API Key** | 不提交真实 API Key（`.env` 已 gitignored） |
+| **AI 评测** | 默认使用 Mock 评分，无需 API Key 即可演示 |
+| **测试图片** | 仅用于本地演示，不公开暴露 |
+| **外网部署** | 必须开启 `SECURE_STATIC=true` 和配置 `CORS_ORIGINS` 白名单 |
+| **作品图片** | 上传路径不应公开暴露，建议配置鉴权 |
+
+---
+
+## 9. 📄 Portfolio Notes
 
 ### 作品集说明
-- 部分实现偏原型化
+
+本仓库是 AI 教育方向的公开项目演示，重点展示：
+
+| 能力维度 | 体现 |
+|---------|------|
+| **Vue 3 双端前端** | 教师端 + 学生端独立 SPA，共享组件库 |
+| **FastAPI 后端** | 异步 API、SQLAlchemy ORM、Pydantic 校验 |
+| **AI 视觉评测集成** | 大模型 API 调用 + Mock 回退模式 |
+| **全栈对接** | 前后端联调、API 文档、环境配置 |
 
 ### License
 
