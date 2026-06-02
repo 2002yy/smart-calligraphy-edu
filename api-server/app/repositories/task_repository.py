@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import delete as sa_delete, select
 from sqlalchemy.orm import Session
 
 from app.models.task import Task
@@ -69,3 +69,13 @@ class TaskRepository:
         db.commit()
         db.refresh(task)
         return task
+
+    @staticmethod
+    def delete_task(db: Session, task_id: int) -> None:
+        # 先删关联的练习字
+        db.execute(sa_delete(TaskCharacter).where(TaskCharacter.task_id == task_id))
+        # 再删任务
+        task = db.get(Task, task_id)
+        if task:
+            db.delete(task)
+        db.commit()

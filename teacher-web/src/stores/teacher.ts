@@ -343,6 +343,16 @@ export const useTeacherStore = defineStore("teacher", () => {
     }
   }
 
+  async function deleteTask(taskId: number) {
+    try {
+      await teacherApi.deleteTask(taskId);
+      tasks.value = tasks.value.filter((item) => item.id !== taskId);
+      setNotice("任务已删除。", "success");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "任务删除失败。", "error");
+    }
+  }
+
   function clearSession() {
     user.value = null;
     token.value = "";
@@ -404,6 +414,7 @@ export const useTeacherStore = defineStore("teacher", () => {
     createCourse,
     createClass,
     createTask,
+    deleteTask,
     logout
   };
 });

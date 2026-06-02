@@ -153,6 +153,12 @@ function formatDate(value?: string | null) {
             </div>
           </div>
 
+          <div class="review-scores" v-if="review.structure_score != null">
+            <div class="mini-score"><span>结构</span><b>{{ review.structure_score }}</b></div>
+            <div class="mini-score"><span>重心</span><b>{{ review.center_score }}</b></div>
+            <div class="mini-score"><span>笔顺</span><b>{{ review.stroke_order_score }}</b></div>
+          </div>
+
           <div class="review-grid">
             <section class="review-copy">
               <strong>AI 建议</strong>
@@ -256,6 +262,22 @@ function formatDate(value?: string | null) {
                   <span>教师终评</span>
                   <b>{{ activeReview.final_score ?? "--" }}</b>
                 </article>
+              </div>
+              <div class="drawer-sub-scores" v-if="activeReview.structure_score != null">
+                <article><span>结构</span><b>{{ activeReview.structure_score }}</b></article>
+                <article><span>重心</span><b>{{ activeReview.center_score }}</b></article>
+                <article><span>笔顺</span><b>{{ activeReview.stroke_order_score }}</b></article>
+              </div>
+            </section>
+
+            <section class="drawer-section" v-if="activeReview.thinking_steps?.length">
+              <strong>AI 思考过程</strong>
+              <div class="thinking-steps-compact">
+                <div v-for="step in activeReview.thinking_steps" :key="step.step" class="ts-item">
+                  <span class="ts-step">{{ step.step }}.</span>
+                  <span class="ts-title">{{ step.title }}</span>
+                  <span v-if="step.score != null" class="ts-score">{{ step.score }}</span>
+                </div>
               </div>
             </section>
 
@@ -644,6 +666,83 @@ function formatDate(value?: string | null) {
 .drawer-fade-leave-to .drawer-panel {
   transform: translateX(24px);
   opacity: 0;
+}
+
+/* 子维度分数（批阅卡片上） */
+.review-scores {
+  display: flex;
+  gap: 10px;
+  padding-bottom: 10px;
+}
+.mini-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 14px;
+  border-radius: 10px;
+  background: rgba(180, 97, 49, 0.06);
+}
+.mini-score span {
+  font-size: 11px;
+  color: var(--muted);
+}
+.mini-score b {
+  font-size: 20px;
+  color: var(--accent-deep);
+}
+
+/* 子维度分数（抽屉内） */
+.drawer-sub-scores {
+  display: flex;
+  gap: 12px;
+  margin-top: 10px;
+}
+.drawer-sub-scores article {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 0;
+  border-radius: 12px;
+  background: rgba(180, 97, 49, 0.06);
+}
+.drawer-sub-scores span {
+  font-size: 12px;
+  color: var(--muted);
+}
+.drawer-sub-scores b {
+  font-size: 24px;
+  color: var(--accent-deep);
+}
+
+/* AI 思考过程（抽屉内紧凑版） */
+.thinking-steps-compact {
+  display: grid;
+  gap: 4px;
+  padding-top: 6px;
+}
+.ts-item {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 4px 0;
+  font-size: 13px;
+}
+.ts-step {
+  color: var(--muted);
+  min-width: 18px;
+  text-align: right;
+}
+.ts-title {
+  flex: 1;
+  color: var(--ink);
+}
+.ts-score {
+  font-weight: 600;
+  color: var(--accent-deep);
+  font-variant-numeric: tabular-nums;
 }
 
 @media (max-width: 1280px) {

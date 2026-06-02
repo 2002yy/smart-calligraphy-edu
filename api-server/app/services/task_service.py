@@ -70,3 +70,10 @@ class TaskService:
         if not task:
             raise HTTPException(status_code=404, detail="task not found")
         return TaskService._serialize(db, task)
+
+    @staticmethod
+    def delete_task(db: Session, task_id: int) -> None:
+        task = TaskRepository.get_by_id(db, task_id)
+        if not task:
+            raise HTTPException(status_code=404, detail="task not found")
+        TaskRepository.delete_task(db, task_id)

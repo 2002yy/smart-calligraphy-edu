@@ -22,9 +22,13 @@ class ReviewService:
             "comment": review.comment,
             "final_score": review.final_score,
             "score": evaluation.total_score if evaluation else None,
+            "structure_score": evaluation.structure_score if evaluation else None,
+            "center_score": evaluation.center_score if evaluation else None,
+            "stroke_order_score": evaluation.stroke_order_score if evaluation else None,
             "tags": evaluation.issues_json if evaluation and evaluation.issues_json else [],
             "advice": evaluation.advice_text if evaluation else None,
             "compare_image_url": evaluation.compare_image_url if evaluation else None,
+            "thinking_steps": evaluation.thinking_steps if evaluation else None,
             "status": review.review_status,
             "reviewed_at": review.reviewed_at,
         }

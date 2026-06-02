@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import auth, classes, courses, dashboard, evaluation, homework, reports, reviews, tasks, users
+from app.api.routes import auth, calligraphy, classes, courses, dashboard, evaluation, homework, reports, reviews, tasks, users
 from app.core.bootstrap import bootstrap_database
 from app.core.config import settings
 
@@ -45,8 +45,14 @@ if not storage_dir.is_absolute():
 storage_dir.mkdir(parents=True, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=storage_dir), name="uploads")
 
+# 碑帖图片目录
+calligraphy_dir = Path(__file__).resolve().parents[1] / "storage" / "calligraphy_db"
+calligraphy_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/storage/calligraphy_db", StaticFiles(directory=calligraphy_dir), name="calligraphy_db")
+
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
+app.include_router(calligraphy.router, prefix="/api/v1/calligraphy", tags=["calligraphy"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 app.include_router(courses.router, prefix="/api/v1/courses", tags=["courses"])
 app.include_router(classes.router, prefix="/api/v1/classes", tags=["classes"])

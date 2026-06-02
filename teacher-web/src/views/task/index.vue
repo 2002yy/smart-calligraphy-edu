@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
+import { useTeacherStore } from "../../stores/teacher";
 import AppSkeleton from "../../components/AppSkeleton.vue";
 import CollapsibleIntro from "../../components/CollapsibleIntro.vue";
 import type { Classroom, Course, Task, TaskForm } from "../../types";
+
+const store = useTeacherStore();
 
 const props = defineProps<{
   loading?: boolean;
@@ -42,6 +45,12 @@ function hasTitleError() {
 
 function hasPracticeCharsError() {
   return !props.form.practiceChars.trim();
+}
+
+function confirmDelete(task: Task) {
+  if (confirm(`确定删除任务"${task.title}"？`)) {
+    store.deleteTask(task.id);
+  }
 }
 </script>
 
@@ -176,7 +185,10 @@ function hasPracticeCharsError() {
           <article v-for="task in tasks" :key="task.id" class="task-record">
             <div class="record-head">
               <strong>{{ task.title }}</strong>
-              <span>#{{ task.id }}</span>
+              <span>
+                #{{ task.id }}
+                <button class="delete-btn" type="button" title="删除任务" @click="confirmDelete(task)">✕</button>
+              </span>
             </div>
             <p>{{ task.description || "暂无任务说明。" }}</p>
             <div class="record-meta">
@@ -316,6 +328,20 @@ textarea {
   gap: 4px;
   margin-top: 10px;
   color: var(--muted);
+}
+
+.delete-btn {
+  margin-left: 8px;
+  border: none;
+  background: transparent;
+  color: #b5442b;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.delete-btn:hover {
+  background: rgba(181, 68, 43, 0.1);
 }
 
 .muted-copy {

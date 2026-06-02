@@ -9,6 +9,7 @@ from fastapi import HTTPException
 
 from app.schemas.evaluation import EvaluationProvider
 from app.services.evaluation_service import EvaluationService
+from app.services.qwen_evaluation_service import QwenEvaluationService
 
 
 class TestBuildMockResult:
@@ -44,9 +45,9 @@ class TestBuildMockResult:
         assert any(tag in result["issues"] for tag in ["结构工整", "重心稳当", "结构基本正确"])
 
     def test_high_score_produces_positive_tags(self, db_session, seeded_task):
-        """homework_id 更高时分数更高，标签应为肯定性。"""
+        """homework_id % 10 == 0 时分数最高，标签应为肯定性。"""
         with pytest.MonkeyPatch().context() as mp:
-            result = EvaluationService._build_mock_result(999, seeded_task)
+            result = EvaluationService._build_mock_result(10, seeded_task)
         assert any(tag in result["issues"] for tag in ["结构工整", "重心稳当", "笔法到位"])
 
 
@@ -55,7 +56,8 @@ class TestResolveProvider:
         resolved = EvaluationService._resolve_provider(EvaluationProvider.mock)
         assert resolved == EvaluationProvider.mock
 
-    def test_auto_falls_back_to_mock_when_openai_not_configured(self):
+    def test_auto_falls_back_to_mock_when_openai_not_configured(self, monkeypatch):
+        monkeypatch.setattr(QwenEvaluationService, "is_configured", staticmethod(lambda: False))
         resolved = EvaluationService._resolve_provider(EvaluationProvider.auto)
         assert resolved == EvaluationProvider.mock
 

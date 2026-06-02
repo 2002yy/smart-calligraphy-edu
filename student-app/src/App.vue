@@ -24,7 +24,7 @@ const breadcrumbs = computed(() => ["学生端", "智慧书法", currentNav.valu
 const stageTitle = computed(() => {
   if (currentNav.value.to === "/overview") return "从领任务到看反馈，一条学习链路一次讲清";
   if (currentNav.value.to === "/tasks") return "先知道练什么，再知道为什么练";
-  if (currentNav.value.to === "/submit") return "把作品提交与 AI 评测放进同一条动作链";
+  if (currentNav.value.to === "/submit") return "把作品提交与AI评测放进同一条动作链";
   return "把每一次练习，记录成看得见的成长";
 });
 const stageCopy = computed(() => {
@@ -406,10 +406,10 @@ onMounted(() => {
 .stage::after {
   content: "墨";
   position: absolute;
-  right: 24px;
+  right: -80px;
   bottom: -8px;
   font-family: var(--font-display);
-  font-size: clamp(132px, 15vw, 190px);
+  font-size: clamp(180px, 20vw, 280px);
   line-height: 0.9;
   color: rgba(19, 85, 119, 0.1);
   animation: sealFloat 6.5s ease-in-out infinite;
@@ -436,7 +436,7 @@ onMounted(() => {
 
 .stage h2 {
   margin: 0;
-  max-width: 7ch;
+  max-width: 14ch;
   font-family: var(--font-display);
   font-size: clamp(22px, 2.2vw, 34px);
   line-height: 1.2;

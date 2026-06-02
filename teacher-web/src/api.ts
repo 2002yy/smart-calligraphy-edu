@@ -62,5 +62,8 @@ export const teacherApi = {
   },
   getClassReport(classId: number) {
     return request.get<never, ClassReport>(`/api/v1/reports/class/${classId}`);
+  },
+  deleteTask(taskId: number) {
+    return request.delete<never, { deleted: boolean }>(`/api/v1/tasks/${taskId}`);
   }
 };

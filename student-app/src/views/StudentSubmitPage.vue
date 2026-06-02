@@ -46,12 +46,13 @@ const resultImageUrl = computed(() => {
 
 // ---- Thinking chain animation ----
 // Timing config (ms) — varies by provider for realistic pacing
-const STEP_RUNNING_MS: Record<string, number> = { mock: 500, openai: 1200, qwen: 1200, auto: 800 };
-const STEP_GAP_MS: Record<string, number> = { mock: 120, openai: 350, qwen: 350, auto: 200 };
+const STEP_RUNNING_MS: Record<string, number> = { mock: 500, openai: 1200, qwen: 2800, auto: 800 };
+const STEP_GAP_MS: Record<string, number> = { mock: 120, openai: 350, qwen: 300, auto: 200 };
 
 const localThinkingSteps = ref<ThinkingStep[]>([]);
 const thinkingExpanded = ref(true);
 const chainVisible = ref(false);
+const waitingForResult = ref(false);
 const currentProvider = computed(() => {
   // 默认用 "qwen" 动画效果（与按钮保持一致）
   return "qwen";
@@ -61,17 +62,20 @@ let animationTimers: number[] = [];
 
 watch(evaluating, (isEvaluating) => {
   if (isEvaluating) {
+    waitingForResult.value = false;
     chainVisible.value = true;
     startThinkingAnimation(currentProvider.value);
   } else if (!isEvaluating && !evaluation.value) {
     stopAnimation();
     chainVisible.value = false;
+    waitingForResult.value = false;
   }
 });
 
 watch(evaluation, (evalData) => {
   if (evalData) {
     stopAnimation();
+    waitingForResult.value = false;
     localThinkingSteps.value =
       evalData.thinking_steps?.length > 0
         ? evalData.thinking_steps
@@ -109,7 +113,12 @@ function startThinkingAnimation(provider = "auto") {
   let stepIndex = 0;
 
   const revealNext = () => {
-    if (!animationActive || stepIndex >= mockSteps.length) return;
+    if (!animationActive) return;
+    if (stepIndex >= mockSteps.length) {
+      // 7 步播完但评测可能还没回来，进入等待状态
+      waitingForResult.value = true;
+      return;
+    }
     const copy = [...localThinkingSteps.value];
     copy[stepIndex] = { ...copy[stepIndex], status: "running" };
     localThinkingSteps.value = copy;
@@ -224,8 +233,8 @@ function handleFileChange(event: Event) {
               <span class="dot">评</span>
             </div>
             <div class="status-copy">
-              <strong>正在分析结构、重心与笔势</strong>
-              <p>系统正在生成评分结果，请稍候查看总分、问题标签和结果回看图。</p>
+              <strong>{{ waitingForResult ? "等待 AI 返回结果" : "正在分析结构、重心与笔势" }}</strong>
+              <p>{{ waitingForResult ? "7 步分析已完成，AI 正在生成最终评分，约 20-30 秒。" : "系统正在生成评分结果，请稍候查看总分、问题标签和结果回看图。" }}</p>
             </div>
           </section>
 
@@ -321,6 +330,37 @@ function handleFileChange(event: Event) {
                   <div v-if="step.detail" class="step-detail">{{ step.detail }}</div>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section
+          v-else-if="(evaluating || quickEvaluating) && !evaluation && waitingForResult"
+          key="waiting"
+          class="result-shell"
+        >
+          <div class="thinking-chain">
+            <div class="thinking-header">
+              <div class="thinking-header-left">
+                <span class="thinking-icon">⟐</span>
+                <span>思考过程</span>
+                <span class="step-count">7/7</span>
+              </div>
+            </div>
+            <div class="steps-list">
+              <div v-for="step in localThinkingSteps" :key="step.step" class="step-item step-done">
+                <div class="step-indicator">
+                  <span class="step-circle done"><span class="checkmark">✓</span></span>
+                  <span v-if="step.step < localThinkingSteps.length" class="step-line line-done"></span>
+                </div>
+                <div class="step-body">
+                  <div class="step-title">{{ step.title }}</div>
+                </div>
+              </div>
+            </div>
+            <div class="waiting-banner">
+              <span class="waiting-dots">正在生成综合评价</span>
+              <span class="waiting-sub">即将返回评分结果</span>
             </div>
           </div>
         </section>
@@ -1029,6 +1069,29 @@ function handleFileChange(event: Event) {
 
 .step-fade-leave-to {
   opacity: 0;
+}
+
+.waiting-banner {
+  display: grid;
+  place-items: center;
+  gap: 6px;
+  padding: 18px 0 6px;
+  text-align: center;
+}
+.waiting-dots {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink, #1a2e3a);
+  animation: waitPulse 1.8s ease-in-out infinite;
+}
+.waiting-sub {
+  font-size: 13px;
+  color: var(--muted, #6a7e8a);
+}
+
+@keyframes waitPulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
 }
 
 @keyframes step-running-pulse {

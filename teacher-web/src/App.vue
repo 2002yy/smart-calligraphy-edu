@@ -408,10 +408,10 @@ onMounted(() => {
 .stage::after {
   content: "書";
   position: absolute;
-  right: 24px;
+  right: -80px;
   bottom: -8px;
   font-family: var(--font-display);
-  font-size: clamp(132px, 15vw, 190px);
+  font-size: clamp(180px, 20vw, 280px);
   line-height: 0.9;
   color: rgba(92, 46, 24, 0.1);
   animation: sealFloat 6.5s ease-in-out infinite;
@@ -438,7 +438,7 @@ onMounted(() => {
 
 .stage h2 {
   margin: 0;
-  max-width: 7ch;
+  max-width: 18ch;
   font-family: var(--font-display);
   font-size: clamp(22px, 2.2vw, 34px);
   line-height: 1.2;
