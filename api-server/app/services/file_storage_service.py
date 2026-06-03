@@ -8,9 +8,11 @@ from uuid import uuid4
 from app.core.config import settings
 
 try:
-    from PIL import Image
+    from PIL import Image, ImageDraw, ImageFont
 except ImportError:
     Image = None
+    ImageDraw = None
+    ImageFont = None
 
 MAX_IMAGE_DIMENSION = 2048
 
@@ -32,7 +34,6 @@ class FileStorageService:
         try:
             img = Image.open(BytesIO(content))
 
-            # 处理透明/索引色模式：转为 RGB 并填充白色背景
             if img.mode in ("RGBA", "LA"):
                 background = Image.new("RGB", img.size, (255, 255, 255))
                 background.paste(img, mask=img.split()[-1])
@@ -45,11 +46,9 @@ class FileStorageService:
             elif img.mode != "RGB":
                 img = img.convert("RGB")
 
-            # 限制最大尺寸
             if img.width > MAX_IMAGE_DIMENSION or img.height > MAX_IMAGE_DIMENSION:
                 img.thumbnail((MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION))
 
-            # 重新保存为统一 JPEG，EXIF 自动丢弃（不传 exif 参数）
             output = BytesIO()
             img.save(output, format="JPEG", quality=88, optimize=True)
             return output.getvalue()
@@ -58,7 +57,6 @@ class FileStorageService:
 
     @staticmethod
     def save_homework_image(task_id: int, student_id: int, filename: str, content: bytes) -> tuple[str, Path]:
-        # 二次规范化：统一 JPEG、去 EXIF、限尺寸、处理透明背景
         normalized = FileStorageService._normalize_image(content)
         safe_name = f"{uuid4().hex}.jpg"
         relative_path = Path("homework") / str(student_id) / str(task_id) / safe_name
@@ -74,3 +72,90 @@ class FileStorageService:
         if normalized.startswith("/uploads/"):
             normalized = normalized[len("/uploads/") :]
         return FileStorageService.get_storage_root() / normalized.replace("/", os.sep)
+
+    @staticmethod
+    def save_result_overlay(image_url: str, scores: dict, tags: list[str]) -> str:
+        """在原图上叠加评分信息，生成结果图。
+
+        Args:
+            image_url: 原图 URL（如 /uploads/homework/2/1/xxx.jpg）
+            scores: 评分字典 {total_score, structure_score, center_score, stroke_order_score}
+            tags: 问题标签列表
+
+        Returns:
+            结果图的 URL，失败则返回原图 URL
+        """
+        if Image is None or ImageDraw is None:
+            return image_url
+
+        src_path = FileStorageService.resolve_upload_url(image_url)
+        if not src_path.exists():
+            return image_url
+
+        try:
+            img = Image.open(src_path).convert("RGB")
+            img.thumbnail((800, 800))
+            w, h = img.size
+            draw = ImageDraw.Draw(img)
+
+            # 加载中文字体
+            font_large = None
+            font_small = None
+            for fp in [
+                "C:/Windows/Fonts/msyh.ttc",
+                "C:/Windows/Fonts/simsun.ttc",
+                "C:/Windows/Fonts/simhei.ttf",
+            ]:
+                if Path(fp).exists():
+                    try:
+                        font_large = ImageFont.truetype(fp, 28)
+                        font_small = ImageFont.truetype(fp, 18)
+                        break
+                    except Exception:
+                        continue
+
+            # 底部半透明黑条
+            bar_h = 100
+            overlay = Image.new("RGBA", (w, bar_h), (0, 0, 0, 160))
+            img.paste(overlay, (0, h - bar_h), overlay)
+
+            # 总分（左侧大号）
+            total = scores.get("total_score", 0)
+            total_text = f"{total}"
+            tw = 0
+            if font_large:
+                bbox = draw.textbbox((0, 0), total_text, font=font_large)
+                tw = bbox[2] - bbox[0]
+            draw.text((16, h - bar_h + 8), total_text, fill=(255, 255, 255), font=font_large)
+            draw.text((16 + tw + 4, h - bar_h + 14), "/10", fill=(200, 200, 200), font=font_small)
+
+            # 子维度分数（中部）
+            parts = [
+                f"结构 {scores.get('structure_score', 0)}",
+                f"重心 {scores.get('center_score', 0)}",
+                f"笔顺 {scores.get('stroke_order_score', 0)}",
+            ]
+            x = 16 + tw + 50
+            for part in parts:
+                draw.text((x, h - bar_h + 12), part, fill=(220, 220, 220), font=font_small)
+                if font_small:
+                    bbox = draw.textbbox((0, 0), part, font=font_small)
+                    x += (bbox[2] - bbox[0]) + 16
+
+            # 标签（底部右对齐）
+            if tags and font_small:
+                tag_text = "  ".join(tags)
+                bbox = draw.textbbox((0, 0), tag_text, font=font_small)
+                tw2 = bbox[2] - bbox[0]
+                draw.text((w - tw2 - 16, h - bar_h + 50), tag_text, fill=(255, 200, 100), font=font_small)
+
+            # 保存为新文件
+            dst_name = f"{src_path.stem}_result.jpg"
+            dst_path = src_path.parent / dst_name
+            img.save(dst_path, "JPEG", quality=90, optimize=True)
+
+            url_dir = image_url.rsplit("/", 1)[0]
+            return f"{url_dir}/{dst_name}"
+
+        except Exception:
+            return image_url

@@ -345,6 +345,20 @@ class EvaluationService:
         else:
             payload = EvaluationService._build_mock_result(homework_id, task, image_url=homework.image_url)
 
+        # 生成叠加评分信息的 overlay 结果图
+        overlay_url = FileStorageService.save_result_overlay(
+            image_url=homework.image_url,
+            scores={
+                "total_score": payload["total_score"],
+                "structure_score": payload["structure_score"],
+                "center_score": payload["center_score"],
+                "stroke_order_score": payload["stroke_order_score"],
+            },
+            tags=payload.get("issues", []),
+        )
+        if overlay_url != homework.image_url:
+            payload["compare_image_url"] = overlay_url
+
         if existing:
             evaluation = EvaluationRepository.update_evaluation(db, existing, **payload)
         else:
