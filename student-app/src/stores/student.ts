@@ -39,6 +39,8 @@ export const useStudentStore = defineStore("student", () => {
   const selectedFile = ref<File | null>(null);
   const previewUrl = ref("");
 
+  type SubmitStage = "idle" | "uploading" | "uploaded" | "evaluating" | "waiting" | "finished" | "failed";
+  const submitStage = ref<SubmitStage>("idle");
   const loading = ref(false);
   const joining = ref(false);
   const message = ref("请先登录学生账号，再选择班级和任务开始练习。");
