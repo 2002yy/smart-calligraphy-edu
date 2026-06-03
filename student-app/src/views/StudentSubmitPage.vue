@@ -10,24 +10,21 @@ import { useStudentStore } from "../stores/student";
 import type { ThinkingStep } from "../types";
 
 const store = useStudentStore();
-const { user, loading, selectedTask, submitForm, latestHomework, evaluation, submitting, evaluating, quickEvaluating, previewUrl } =
+const { user, loading, selectedTask, submitForm, latestHomework, evaluation, submitting, evaluating, previewUrl } =
   storeToRefs(store);
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
 
 const uploadStage = computed(() => {
-  if (quickEvaluating.value || evaluating.value) {
+  if (evaluating.value) {
     return "evaluating";
   }
-
   if (evaluation.value) {
     return "review";
   }
-
   if (latestHomework.value) {
     return "uploaded";
   }
-
   return "idle";
 });
 
@@ -53,6 +50,7 @@ const localThinkingSteps = ref<ThinkingStep[]>([]);
 const thinkingExpanded = ref(true);
 const chainVisible = ref(false);
 const waitingForResult = ref(false);
+const isDevMode = import.meta.env.DEV;
 const currentProvider = computed(() => {
   // 默认用 "qwen" 动画效果（与按钮保持一致）
   return "qwen";
@@ -234,48 +232,48 @@ function handleFileChange(event: Event) {
             </div>
             <div class="status-copy">
               <strong>{{ waitingForResult ? "等待 AI 返回结果" : "正在分析结构、重心与笔势" }}</strong>
-              <p>{{ waitingForResult ? "7 步分析已完成，AI 正在生成最终评分，约 20-30 秒。" : "系统正在生成评分结果，请稍候查看总分、问题标签和结果回看图。" }}</p>
+              <p>{{ waitingForResult ? "7 步分析已完成，AI 正在生成最终评分，约 20-30 秒。" : "系统正在生成评分结果，请稍候查看总分、问题标签和作品回看图。" }}</p>
             </div>
           </section>
 
           <section v-else-if="uploadStage === 'review' && resultImageUrl" key="result-review" class="preview-block">
-            <strong>结果回看图</strong>
+            <strong>作品回看图</strong>
             <div class="preview-frame result-frame">
-              <img :src="resultImageUrl" alt="评测结果回看图" />
+              <img :src="resultImageUrl" alt="评测作品回看图" />
             </div>
-            <small class="field-hint">上传预览已自动切换为结果回看图，展示了系统对作品的分析结果。</small>
+            <small class="field-hint">上传预览已自动切换为作品回看图，展示了系统对作品的分析结果。</small>
           </section>
         </transition>
 
         <div class="action-stack">
-          <button class="hero-btn" :disabled="quickEvaluating || submitting || evaluating" @click="store.submitAndEvaluateWithQwen()">
+          <button class="hero-btn" :disabled="submitting || evaluating" @click="store.submitAndEvaluate()">
             <span class="btn-content">
-              <span v-if="quickEvaluating" class="btn-spinner white"></span>
+              <span v-if="evaluating && !submitting" class="btn-spinner white"></span>
               <svg v-else class="hero-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M10 1.5v3M10 15.5v3M4.22 4.22l2.12 2.12M13.66 13.66l2.12 2.12M1.5 10h3M15.5 10h3M4.22 15.78l2.12-2.12M13.66 6.34l2.12-2.12"/>
               </svg>
-              {{ quickEvaluating ? "提交并评测中..." : "提交后触发 Qwen AI 评分" }}
+              {{ submitting && evaluating ? "提交并评测中..." : "提交作业并评测" }}
             </span>
           </button>
 
-          <button class="secondary-btn" :disabled="submitting || quickEvaluating" @click="store.submitAndEvaluateWithOpenAI()">
+          <button v-if="isDevMode" class="secondary-btn" :disabled="submitting || evaluating" @click="store.submitAndEvaluateWithOpenAI()">
             <span class="btn-content">
-              <span v-if="submitting && !quickEvaluating" class="btn-spinner"></span>
-              {{ submitting && !quickEvaluating ? "提交中..." : "提交 + 旧版 GPT 评测" }}
+              <span v-if="submitting && !evaluating" class="btn-spinner"></span>
+              {{ submitting ? "提交中..." : "提交 + 旧版 GPT 评测(调试)" }}
             </span>
           </button>
 
-          <button class="secondary-btn" :disabled="submitting || quickEvaluating" @click="store.submitHomework()">
+          <button class="secondary-btn" :disabled="submitting || evaluating" @click="store.submitHomework()">
             <span class="btn-content">
-              <span v-if="submitting && !quickEvaluating" class="btn-spinner"></span>
-              {{ submitting && !quickEvaluating ? "提交中..." : "仅提交作业" }}
+              <span v-if="submitting" class="btn-spinner"></span>
+              {{ submitting ? "提交中..." : "仅提交作业" }}
             </span>
           </button>
 
-          <button class="ghost-btn" :disabled="evaluating || !latestHomework || quickEvaluating" @click="store.evaluateHomework()">
+          <button class="ghost-btn" :disabled="evaluating || !latestHomework" @click="store.evaluateHomework()">
             <span class="btn-content">
-              <span v-if="evaluating && !quickEvaluating" class="btn-spinner dark"></span>
-              {{ evaluating && !quickEvaluating ? "评测中..." : "对最近一次作业发起评测" }}
+              <span v-if="evaluating" class="btn-spinner dark"></span>
+              {{ evaluating ? "评测中..." : "对最近一次作业发起评测" }}
             </span>
           </button>
         </div>
@@ -285,7 +283,7 @@ function handleFileChange(event: Event) {
 
       <Transition name="chain-switch" mode="out-in">
         <PageState
-          v-if="(evaluating || quickEvaluating) && !evaluation && !chainVisible"
+          v-if="evaluating && !evaluation && !chainVisible"
           key="loading"
           mode="loading"
           title="正在生成评分结果"
@@ -294,7 +292,7 @@ function handleFileChange(event: Event) {
         />
 
         <section
-          v-else-if="(evaluating || quickEvaluating) && !evaluation && chainVisible"
+          v-else-if="evaluating && !evaluation && chainVisible"
           key="evaluating"
           class="result-shell"
         >
@@ -335,7 +333,7 @@ function handleFileChange(event: Event) {
         </section>
 
         <section
-          v-else-if="(evaluating || quickEvaluating) && !evaluation && waitingForResult"
+          v-else-if="evaluating && !evaluation && waitingForResult"
           key="waiting"
           class="result-shell"
         >

@@ -43,7 +43,6 @@ export const useStudentStore = defineStore("student", () => {
   const joining = ref(false);
   const submitting = ref(false);
   const evaluating = ref(false);
-  const quickEvaluating = ref(false);
   const message = ref("请先登录学生账号，再选择班级和任务开始练习。");
   const noticeType = ref<NoticeType>("info");
 
@@ -241,39 +240,40 @@ export const useStudentStore = defineStore("student", () => {
     }
   }
 
-  async function submitAndEvaluateWithQwen() {
-    // 一键提交 + Qwen 评测（推荐）
-    if (submitting.value || evaluating.value || quickEvaluating.value) {
-      return;
-    }
+  async function submitAndEvaluate() {
+    // 一键提交 + 评测：优先 Qwen，失败自动降级 Mock
+    if (submitting.value || evaluating.value) return;
 
-    quickEvaluating.value = true;
+    evaluating.value = true;
     try {
       const homework = await submitHomework();
-      if (!homework) {
-        return;
+      if (!homework) return;
+
+      try {
+        await studentApi.startEvaluation(homework.id, "qwen", true);
+      } catch {
+        await studentApi.startEvaluation(homework.id, "auto", true);
       }
-      await evaluateHomework("qwen");
+      evaluation.value = await studentApi.getEvaluation(homework!.id);
+      growth.value = await studentApi.getGrowth(user.value!.id);
+      setNotice("AI 评测完成，结果卡片已更新。", "success");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "AI 评测失败。", "error");
     } finally {
-      quickEvaluating.value = false;
+      evaluating.value = false;
     }
   }
 
   async function submitAndEvaluateWithOpenAI() {
-    // DEPRECATED: kept for reference. Use submitAndEvaluateWithQwen instead.
-    if (submitting.value || evaluating.value || quickEvaluating.value) {
-      return;
-    }
-
-    quickEvaluating.value = true;
+    // DEPRECATED: 仅在调试时使用，默认隐藏
+    if (submitting.value || evaluating.value) return;
+    evaluating.value = true;
     try {
       const homework = await submitHomework();
-      if (!homework) {
-        return;
-      }
+      if (!homework) return;
       await evaluateHomework("openai");
     } finally {
-      quickEvaluating.value = false;
+      evaluating.value = false;
     }
   }
 
@@ -336,7 +336,6 @@ export const useStudentStore = defineStore("student", () => {
     joining,
     submitting,
     evaluating,
-    quickEvaluating,
     message,
     noticeType,
     joinForm,
@@ -353,7 +352,7 @@ export const useStudentStore = defineStore("student", () => {
     joinClass,
     submitHomework,
     evaluateHomework,
-    submitAndEvaluateWithQwen,
+    submitAndEvaluate,
     submitAndEvaluateWithOpenAI,
     updateSelectedFile,
     logout
