@@ -17,7 +17,7 @@ const { user, loading, selectedTask, submitForm, latestHomework, evaluation, sub
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
 
 const uploadStage = computed(() => {
-  if (evaluating.value) {
+  if (submitStage.value === "evaluating" || submitStage.value === "waiting") {
     return "evaluating";
   }
   if (evaluation.value) {

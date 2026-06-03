@@ -41,8 +41,6 @@ export const useStudentStore = defineStore("student", () => {
 
   const loading = ref(false);
   const joining = ref(false);
-  const submitting = ref(false);
-  const evaluating = ref(false);
   const message = ref("请先登录学生账号，再选择班级和任务开始练习。");
   const noticeType = ref<NoticeType>("info");
 
@@ -181,7 +179,7 @@ export const useStudentStore = defineStore("student", () => {
       return null;
     }
 
-    submitting.value = true;
+    submitStage.value = "uploading";
     try {
       const uploadResult = await studentApi.uploadHomework({
         task_id: selectedTask.value.id,
@@ -203,7 +201,7 @@ export const useStudentStore = defineStore("student", () => {
       setNotice(error instanceof Error ? error.message : "作业提交失败。", "error");
       return null;
     } finally {
-      submitting.value = false;
+      
     }
   }
 
@@ -213,7 +211,7 @@ export const useStudentStore = defineStore("student", () => {
       return;
     }
 
-    evaluating.value = true;
+    submitStage.value = "evaluating";
     if (provider === "openai") {
       setNotice("正在调用 OpenAI 生成评分结果，请稍候（此为旧版评测，建议使用 Qwen）。", "info");
     } else if (provider === "qwen") {
@@ -235,7 +233,7 @@ export const useStudentStore = defineStore("student", () => {
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "AI 评测失败。", "error");
     } finally {
-      evaluating.value = false;
+      submitStage.value = submitStage.value === "evaluating" ? "idle" : submitStage.value;
     }
   }
 
@@ -250,43 +248,35 @@ export const useStudentStore = defineStore("student", () => {
   }
 
   async function submitAndEvaluate() {
-    if (submitting.value || evaluating.value) return;
-    evaluating.value = true;
+    if (submitStage.value !== "idle") return;
     try {
       const homework = await submitHomework();
-      if (!homework) return;
-
+      if (!homework) { submitStage.value = "failed"; return; }
+      submitStage.value = "evaluating";
       let provider: "qwen" | "auto" = "qwen";
-      try {
-        await studentApi.startEvaluation(homework.id, "qwen", true);
-      } catch {
-        provider = "auto";
-        await studentApi.startEvaluation(homework.id, "auto", true);
-      }
-
+      try { await studentApi.startEvaluation(homework.id, "qwen", true); } catch { provider = "auto"; await studentApi.startEvaluation(homework.id, "auto", true); }
+      submitStage.value = "waiting";
       evaluation.value = await waitEvaluationFinished(homework.id);
       growth.value = await studentApi.getGrowth(user.value!.id);
+      submitStage.value = "finished";
       setNotice(provider === "qwen" ? "AI 评分已完成" : "AI 评测完成，结果卡片已更新。", "success");
     } catch (error) {
+      submitStage.value = "failed";
       setNotice(error instanceof Error ? error.message : "AI 评测失败。", "error");
-    } finally {
-      evaluating.value = false;
     }
   }
-
   async function submitAndEvaluateWithOpenAI() {
     // DEPRECATED: 仅在调试时使用，默认隐藏
-    if (submitting.value || evaluating.value) return;
-    evaluating.value = true;
+    if (submitStage.value !== "idle") return;
+    submitStage.value = "evaluating";
     try {
       const homework = await submitHomework();
-      if (!homework) return;
+      if (!homework) { submitStage.value = "failed"; return; }
       await evaluateHomework("openai");
     } finally {
-      evaluating.value = false;
+      if (submitStage.value === "evaluating") submitStage.value = "idle";
     }
   }
-
   function updateSelectedFile(file: File | null) {
     if (previewUrl.value) {
       URL.revokeObjectURL(previewUrl.value);
@@ -344,8 +334,6 @@ export const useStudentStore = defineStore("student", () => {
     previewUrl,
     loading,
     joining,
-    submitting,
-    evaluating,
     message,
     noticeType,
     joinForm,
@@ -362,6 +350,7 @@ export const useStudentStore = defineStore("student", () => {
     joinClass,
     submitHomework,
     evaluateHomework,
+    submitStage,
     submitAndEvaluate,
     submitAndEvaluateWithOpenAI,
     updateSelectedFile,
