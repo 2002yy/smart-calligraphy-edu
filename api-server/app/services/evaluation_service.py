@@ -1,3 +1,6 @@
+import sqlite3
+from pathlib import Path
+
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
@@ -9,11 +12,28 @@ from app.services.openai_evaluation_service import OpenAIEvaluationService  # DE
 from app.services.qwen_evaluation_service import QwenEvaluationService
 
 
+def _query_calligraphy(character: str, top_k: int = 6) -> list[str]:
+    """查询碑帖数据库，返回该字的图片 URL 列表"""
+    db_path = Path(__file__).resolve().parents[2] / "smart_calligraphy.db"
+    if not db_path.exists():
+        return []
+    try:
+        conn = sqlite3.connect(str(db_path))
+        rows = conn.execute(
+            "SELECT image_path FROM calligraphy_db WHERE character = ? ORDER BY RANDOM() LIMIT ?",
+            (character, top_k),
+        ).fetchall()
+        conn.close()
+        return [row[0] for row in rows]
+    except Exception:
+        return []
+
+
 class EvaluationService:
     @staticmethod
-    def _serialize(evaluation) -> dict:
+    def _serialize(evaluation, character: str | None = None) -> dict:
         tags = evaluation.issues_json or []
-        return {
+        result = {
             "id": evaluation.id,
             "homework_id": evaluation.homework_id,
             "score": evaluation.total_score,
@@ -28,7 +48,9 @@ class EvaluationService:
             "thinking_steps": evaluation.thinking_steps,
             "status": "finished",
             "created_at": evaluation.created_at,
+            "calligraphy_images": _query_calligraphy(character) if character else [],
         }
+        return result
 
     @staticmethod
     def _resolve_provider(requested_provider: EvaluationProvider) -> EvaluationProvider:
@@ -355,4 +377,13 @@ class EvaluationService:
         evaluation = EvaluationRepository.get_by_homework_id(db, homework_id)
         if not evaluation:
             raise HTTPException(status_code=404, detail="evaluation not found")
-        return EvaluationService._serialize(evaluation)
+        # 从作业关联的任务中取第一个练习字用于碑帖查询
+        from app.repositories import HomeworkRepository
+        homework = HomeworkRepository.get_by_id(db, homework_id)
+        char = None
+        if homework:
+            task = TaskRepository.get_by_id(db, homework.task_id)
+            if task:
+                chars = [item.character for item in TaskRepository.list_characters(db, task.id)]
+                char = chars[0] if chars else None
+        return EvaluationService._serialize(evaluation, character=char)

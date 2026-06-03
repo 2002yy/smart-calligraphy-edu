@@ -26,6 +26,7 @@ class EvaluationRead(BaseModel):
     thinking_steps: list[dict] | None = None
     status: str = "finished"
     created_at: datetime | None = None
+    calligraphy_images: list[str] = []
 
     model_config = ConfigDict(
         json_schema_extra={

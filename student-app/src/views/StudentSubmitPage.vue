@@ -415,6 +415,15 @@ function handleFileChange(event: Event) {
             </article>
           </div>
 
+          <section class="calligraphy-section" v-if="evaluation.calligraphy_images?.length">
+            <strong class="calligraphy-head">📖 相关碑帖</strong>
+            <div class="calligraphy-grid">
+              <div v-for="(img, idx) in evaluation.calligraphy_images" :key="idx" class="calligraphy-item">
+                <img :src="`${apiBaseUrl}${img}`" alt="碑帖" loading="lazy" />
+              </div>
+            </div>
+          </section>
+
           <section class="result-copy">
             <strong>练习建议</strong>
             <p>{{ evaluation.advice || "当前暂无练习建议。" }}</p>
@@ -764,6 +773,32 @@ function handleFileChange(event: Event) {
   margin: 0;
   color: var(--muted);
   line-height: 1.8;
+}
+
+.calligraphy-section {
+  margin: 12px 0 8px;
+}
+.calligraphy-head {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 15px;
+}
+.calligraphy-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.calligraphy-item {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(21, 66, 90, 0.1);
+  background: rgba(248, 252, 255, 0.6);
+}
+.calligraphy-item img {
+  display: block;
+  width: 100%;
+  height: 80px;
+  object-fit: contain;
 }
 
 .issue-list {

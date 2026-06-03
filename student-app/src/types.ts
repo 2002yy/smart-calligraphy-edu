@@ -72,6 +72,7 @@ export interface Evaluation {
   thinking_steps?: ThinkingStep[] | null;
   status: string;
   created_at?: string | null;
+  calligraphy_images?: string[];
 }
 
 export interface ThinkingStep {
