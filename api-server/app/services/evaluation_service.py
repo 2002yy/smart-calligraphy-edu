@@ -273,6 +273,7 @@ class EvaluationService:
             "advice_text": advice,
             "compare_image_url": homework.image_url,
             "thinking_steps": thinking_steps,
+            "annotations": result.get("annotations", []),
         }
 
     @staticmethod
@@ -355,6 +356,7 @@ class EvaluationService:
                 "stroke_order_score": payload["stroke_order_score"],
             },
             tags=payload.get("issues", []),
+            annotations=payload.get("annotations", []),
         )
         if overlay_url != homework.image_url:
             payload["compare_image_url"] = overlay_url

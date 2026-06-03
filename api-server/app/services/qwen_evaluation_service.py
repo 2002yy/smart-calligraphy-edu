@@ -29,6 +29,18 @@ except ImportError:  # pragma: no cover
     Image = None
 
 
+class QwenAnnotation(BaseModel):
+    """标注框 — 用于在图片上标记问题区域。"""
+
+    type: str = Field(default="")  # "structure" | "center" | "stroke"
+    label: str = Field(default="")  # short text like "撇捺角度过大"
+    x1: float = Field(ge=0, le=100)  # left % coordinate
+    y1: float = Field(ge=0, le=100)  # top % coordinate
+    x2: float = Field(ge=0, le=100)  # right % coordinate
+    y2: float = Field(ge=0, le=100)  # bottom % coordinate
+    severity: str = Field(default="minor")  # "minor" | "major"
+
+
 class QwenThinkingStep(BaseModel):
     """思考步骤中的单个步骤。"""
 
@@ -54,6 +66,7 @@ class QwenEvaluationResult(BaseModel):
     tags: list[str] = Field(default_factory=list)
     advice: str = Field(default="", max_length=200)
     thinking_steps: list[QwenThinkingStep] = Field(default_factory=list)
+    annotations: list[QwenAnnotation] = Field(default_factory=list)
 
 
 class QwenEvaluationService:
@@ -153,7 +166,9 @@ class QwenEvaluationService:
                         "- 观察和建议要具体到笔画层面\n"
                         "- 每个维度的修改建议让学生知道具体怎么改\n\n"
                         "【输出要求】\n"
-                        "必须返回严格的 JSON 对象，不要包含任何额外的文字说明。JSON 结构：\n"
+                        "必须返回严格的 JSON 对象，不要包含任何额外的文字说明。"
+                        "如果发现具体问题笔画，请标注其位置坐标(百分比0-100)，例如撇捺角度过大、竖画不直等。\n"
+                        "JSON 结构：\n"
                         "{\n"
                         '  "structure_score": <0-10 一位小数>,\n'
                         '  "structure_observation": "结构观察，一句话",\n'
@@ -166,6 +181,9 @@ class QwenEvaluationService:
                         '  "stroke_order_suggestion": "笔顺修改建议，一句话",\n'
                         '  "total_score": <按权重计算的综合得分>,\n'
                         '  "tags": ["从候选列表中选的2-4个标签"],\n'
+                        '  "annotations": [\n'
+                        '    {"type": "structure/stroke/center", "label": "问题描述", "x1": 左%, "y1": 上%, "x2": 右%, "y2": 下%, "severity": "major/minor"}\n'
+                        '  ],\n'
                         '  "advice": "综合练习建议，不超过120字",\n'
                         '  "thinking_steps": [\n'
                         '    {"step":1,"title":"图像预处理","detail":"观察","score":0},\n'

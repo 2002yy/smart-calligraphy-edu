@@ -74,13 +74,19 @@ class FileStorageService:
         return FileStorageService.get_storage_root() / normalized.replace("/", os.sep)
 
     @staticmethod
-    def save_result_overlay(image_url: str, scores: dict, tags: list[str]) -> str:
-        """在原图上叠加评分信息，生成结果图。
+    def save_result_overlay(
+        image_url: str,
+        scores: dict,
+        tags: list[str],
+        annotations: list[dict] | None = None,
+    ) -> str:
+        """在原图上叠加评分信息和检测框标注，生成结果图。
 
         Args:
             image_url: 原图 URL（如 /uploads/homework/2/1/xxx.jpg）
             scores: 评分字典 {total_score, structure_score, center_score, stroke_order_score}
             tags: 问题标签列表
+            annotations: 可选，检测框标注列表，每项含 type/label/x1/y1/x2/y2/severity
 
         Returns:
             结果图的 URL，失败则返回原图 URL
@@ -94,13 +100,19 @@ class FileStorageService:
 
         try:
             img = Image.open(src_path).convert("RGB")
+            orig_w, orig_h = img.size
+
+            # 缩放到标准尺寸，记录缩放比例
             img.thumbnail((800, 800))
             w, h = img.size
+            scale_x = w / orig_w
+            scale_y = h / orig_h
             draw = ImageDraw.Draw(img)
 
             # 加载中文字体
             font_large = None
             font_small = None
+            font_tiny = None
             for fp in [
                 "C:/Windows/Fonts/msyh.ttc",
                 "C:/Windows/Fonts/simsun.ttc",
@@ -110,11 +122,55 @@ class FileStorageService:
                     try:
                         font_large = ImageFont.truetype(fp, 28)
                         font_small = ImageFont.truetype(fp, 18)
+                        font_tiny = ImageFont.truetype(fp, 14)
                         break
                     except Exception:
                         continue
 
-            # 底部半透明黑条
+            # ── 绘制检测框标注（在底部评分条之前）──
+            if annotations:
+                for ann in annotations:
+                    # 将原始坐标缩放到缩略图尺寸
+                    x1 = int(ann["x1"] * scale_x)
+                    y1 = int(ann["y1"] * scale_y)
+                    x2 = int(ann["x2"] * scale_x)
+                    y2 = int(ann["y2"] * scale_y)
+
+                    # 裁剪到图像边界
+                    x1 = max(0, min(w, x1))
+                    y1 = max(0, min(h, y1))
+                    x2 = max(x1, min(w, x2))
+                    y2 = max(y1, min(h, y2))
+                    box_w = x2 - x1
+                    box_h = y2 - y1
+                    if box_w < 1 or box_h < 1:
+                        continue
+
+                    # 根据 severity 选择颜色
+                    severity = ann.get("severity", "minor")
+                    if severity == "major":
+                        rect_color = (255, 50, 50, 60)
+                    else:
+                        rect_color = (255, 180, 50, 60)
+
+                    # 绘制半透明矩形覆盖层
+                    overlay = Image.new("RGBA", (box_w, box_h), rect_color)
+                    img.paste(overlay, (x1, y1), overlay)
+
+                    # 绘制白色连接线与标签
+                    label = ann.get("label", ann.get("type", ""))
+                    if label and font_tiny:
+                        cx = (x1 + x2) // 2
+                        line_top = max(y1 - 24, 2)
+
+                        # 竖线：从框顶部中心向上
+                        draw.line([(cx, y1), (cx, line_top)], fill=(255, 255, 255), width=1)
+                        # 短横线：向右延伸供文字放置
+                        draw.line([(cx, line_top), (cx + 36, line_top)], fill=(255, 255, 255), width=1)
+                        # 文字标签：放在横线末端
+                        draw.text((cx + 40, line_top - 7), label, fill=(255, 255, 255), font=font_tiny)
+
+            # ── 底部半透明黑条（原有逻辑不变）──
             bar_h = 100
             overlay = Image.new("RGBA", (w, bar_h), (0, 0, 0, 160))
             img.paste(overlay, (0, h - bar_h), overlay)
