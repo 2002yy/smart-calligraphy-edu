@@ -201,6 +201,13 @@ class EvaluationService:
                     _db.close()
             except Exception:
                 import traceback; traceback.print_exc()
+                try:
+                    _ev2 = EvaluationRepository.get_by_homework_id(_db, homework_id)
+                    if _ev2:
+                        EvaluationRepository.update_evaluation(_db, _ev2, status="failed", advice_text="AI 评测异常，请稍后重试或切换 Mock 模式。")
+                        _db.commit()
+                except Exception:
+                    pass
 
         threading.Thread(target=_run, daemon=True).start()
         return {"status": "processing", "homework_id": homework_id, "evaluation_id": evaluation.id, "provider": resolved_provider}

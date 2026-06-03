@@ -240,23 +240,34 @@ export const useStudentStore = defineStore("student", () => {
     }
   }
 
-  async function submitAndEvaluate() {
-    // 一键提交 + 评测：优先 Qwen，失败自动降级 Mock
-    if (submitting.value || evaluating.value) return;
+  async function waitEvaluationFinished(homeworkId: number, maxRetries = 40): Promise<Evaluation> {
+    for (let i = 0; i < maxRetries; i++) {
+      const result = await studentApi.getEvaluation(homeworkId);
+      if (result.status === "finished") return result;
+      if (result.status === "failed") throw new Error("AI 评测失败，请稍后重试");
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+    throw new Error("评测超时，请稍后刷新查看结果");
+  }
 
+  async function submitAndEvaluate() {
+    if (submitting.value || evaluating.value) return;
     evaluating.value = true;
     try {
       const homework = await submitHomework();
       if (!homework) return;
 
+      let provider: "qwen" | "auto" = "qwen";
       try {
         await studentApi.startEvaluation(homework.id, "qwen", true);
       } catch {
+        provider = "auto";
         await studentApi.startEvaluation(homework.id, "auto", true);
       }
-      evaluation.value = await studentApi.getEvaluation(homework!.id);
+
+      evaluation.value = await waitEvaluationFinished(homework.id);
       growth.value = await studentApi.getGrowth(user.value!.id);
-      setNotice("AI 评测完成，结果卡片已更新。", "success");
+      setNotice(provider === "qwen" ? "AI 评分已完成" : "AI 评测完成，结果卡片已更新。", "success");
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "AI 评测失败。", "error");
     } finally {

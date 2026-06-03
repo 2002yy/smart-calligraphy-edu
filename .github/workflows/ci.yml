@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: code/api-server
+        working-directory: api-server
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: code/teacher-web
+        working-directory: teacher-web
     steps:
       - uses: actions/checkout@v4
       - name: Set up Node.js
@@ -45,12 +45,14 @@ jobs:
         run: npm ci
       - name: Build
         run: npm run build
+      - name: Test
+        run: npm test
 
   student-app:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: code/student-app
+        working-directory: student-app
     steps:
       - uses: actions/checkout@v4
       - name: Set up Node.js
@@ -63,3 +65,5 @@ jobs:
         run: npm ci
       - name: Build
         run: npm run build
+      - name: Test
+        run: npm test
