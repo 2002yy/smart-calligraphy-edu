@@ -131,7 +131,7 @@ npm run dev
 |------|---------|--------|------|
 | **pytest**（后端） | 登录认证、Mock 评测、provider 选择、分数范围、思考链 | **28** | ✅ |
 | **Vitest**（前端 store） | 学生登录/登出、选班级、选任务、提交作业、评测、文件选择 | **15** | ✅ |
-| **Playwright**（E2E） | API 冒烟 → 上传 → Mock 评测 → 看板回流 → UI 截图 | **全链路** | ✅ |
+| **Playwright**（E2E） | API 冒烟 → 上传 → Mock 评测 → 看板回流 → UI 截图 | **全链路** | ✅ 本地可用，待接入 CI |
 | API 文档 | FastAPI `/docs` 自动生成 | — | ✅ |
 | Mock Evaluator | 无 API Key 时本地演示 | — | ✅ |
 
