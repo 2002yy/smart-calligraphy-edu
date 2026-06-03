@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
 
+import { studentApi } from "../api";
 import AppSkeleton from "../components/AppSkeleton.vue";
 import CollapsibleIntro from "../components/CollapsibleIntro.vue";
 import PageState from "../components/PageState.vue";
@@ -51,6 +52,16 @@ const thinkingExpanded = ref(true);
 const chainVisible = ref(false);
 const waitingForResult = ref(false);
 const isDevMode = import.meta.env.DEV;
+const qwenEnabled = ref(false);
+const providerLoaded = ref(false);
+
+onMounted(async () => {
+  try {
+    const provs = await studentApi.getEvaluationProviders();
+    qwenEnabled.value = provs.qwen?.enabled ?? false;
+  } catch {}
+  providerLoaded.value = true;
+});
 const currentProvider = computed(() => {
   // 默认用 "qwen" 动画效果（与按钮保持一致）
   return "qwen";
@@ -234,6 +245,11 @@ function handleFileChange(event: Event) {
               <strong>{{ waitingForResult ? "等待 AI 返回结果" : "正在分析结构、重心与笔势" }}</strong>
               <p>{{ waitingForResult ? "7 步分析已完成，AI 正在生成最终评分，约 20-30 秒。" : "系统正在生成评分结果，请稍候查看总分、问题标签和作品回看图。" }}</p>
             </div>
+          </section>
+
+          <section v-if="providerLoaded" class="mode-badge">
+            <span class="mode-dot" :class="qwenEnabled ? 'online' : 'offline'"></span>
+            <span class="mode-text">{{ qwenEnabled ? 'AI 模式' : 'Mock 演示模式' }}</span>
           </section>
 
           <section v-else-if="uploadStage === 'review' && resultImageUrl" key="result-review" class="preview-block">
@@ -772,6 +788,11 @@ function handleFileChange(event: Event) {
   color: var(--muted);
   line-height: 1.8;
 }
+
+.mode-badge { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; font-size: 13px; color: var(--muted); }
+.mode-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.mode-dot.online { background: #4caf50; }
+.mode-dot.offline { background: #999; }
 
 .calligraphy-section {
   margin: 12px 0 8px;

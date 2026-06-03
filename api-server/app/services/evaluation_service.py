@@ -160,7 +160,7 @@ class EvaluationService:
         # 同步路径（Mock/OpenAI）
         if resolved_provider != EvaluationProvider.qwen:
             payload = EvaluationService._build_openai_result(db, homework, task) if resolved_provider == EvaluationProvider.openai else EvaluationService._build_mock_result(homework_id, task, image_url=homework.image_url)
-            ov = FileStorageService.save_result_overlay(image_url=homework.image_url, scores={k: payload[k] for k in ("total_score", "structure_score", "center_score", "stroke_order_score")}, tags=payload.get("issues", []))
+            ov = FileStorageService.save_result_overlay(image_url=homework.image_url, scores={k: payload[k] for k in ("total_score", "structure_score", "center_score", "stroke_order_score")}, tags=payload.get("issues", []), annotations=payload.get("annotations", []))
             if ov != homework.image_url:
                 payload["compare_image_url"] = ov
             evaluation = EvaluationRepository.update_evaluation(db, existing, status="finished", **payload) if existing else EvaluationRepository.create_evaluation(db, homework_id=homework_id, status="finished", **payload)
@@ -186,7 +186,7 @@ class EvaluationService:
                     if not _hw or not _task:
                         return
                     _payload = EvaluationService._build_qwen_result(_db, _hw, _task)
-                    _ov = FileStorageService.save_result_overlay(image_url=_hw.image_url, scores={k: _payload[k] for k in ("total_score", "structure_score", "center_score", "stroke_order_score")}, tags=_payload.get("issues", []))
+                    _ov = FileStorageService.save_result_overlay(image_url=_hw.image_url, scores={k: _payload[k] for k in ("total_score", "structure_score", "center_score", "stroke_order_score")}, tags=_payload.get("issues", []), annotations=_payload.get("annotations", []))
                     if _ov != _hw.image_url:
                         _payload["compare_image_url"] = _ov
                     _ev = EvaluationRepository.get_by_homework_id(_db, homework_id)

@@ -73,5 +73,8 @@ export const studentApi = {
   },
   getGrowth(userId: number) {
     return request.get<never, Growth>(`/api/v1/users/${userId}/growth`);
+  },
+  getEvaluationProviders() {
+    return request.get<never, Record<string, {enabled: boolean; configured?: boolean; deprecated?: boolean}>>("/api/v1/evaluation/providers");
   }
 };
