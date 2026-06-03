@@ -11,6 +11,7 @@ class Evaluation(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     homework_id: Mapped[int] = mapped_column(ForeignKey("homework.id"), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="pending")
     total_score: Mapped[float] = mapped_column(default=0)
     structure_score: Mapped[float] = mapped_column(default=0)
     center_score: Mapped[float] = mapped_column(default=0)

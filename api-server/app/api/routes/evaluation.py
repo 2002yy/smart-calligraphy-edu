@@ -9,6 +9,15 @@ from app.services import EvaluationService
 router = APIRouter()
 
 
+@router.get(
+    "/providers",
+    summary="获取可用评测提供方",
+    description="返回各评测提供方的可用状态，前端据此切换按钮文案。",
+)
+def list_providers():
+    return APIResponse(data=EvaluationService.get_providers())
+
+
 @router.post(
     "/start",
     response_model=APIResponse[EvaluationStartRead],
