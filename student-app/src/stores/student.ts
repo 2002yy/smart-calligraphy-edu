@@ -185,7 +185,6 @@ export const useStudentStore = defineStore("student", () => {
     try {
       const uploadResult = await studentApi.uploadHomework({
         task_id: selectedTask.value.id,
-        student_id: user.value.id,
         file: selectedFile.value
       });
 

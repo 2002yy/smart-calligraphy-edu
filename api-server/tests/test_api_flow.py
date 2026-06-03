@@ -150,10 +150,13 @@ def test_homework_upload_and_openai_switch(monkeypatch):
             _min_png = _buf.getvalue()
         except ImportError:
             _min_png = b""
+        _slogin = client.post("/api/v1/auth/login", json={"username": "student01", "password": "123456"})
+        _stok = _slogin.json()["data"]["access_token"]
         upload_response = client.post(
             "/api/v1/homework/upload",
             files={"file": ("demo.png", _min_png, "image/png")},
-            data={"task_id": str(task_id), "student_id": "2"},
+            data={"task_id": str(task_id)},
+            headers={"Authorization": f"Bearer {_stok}"},
         )
         assert upload_response.status_code == 200
         homework_id = upload_response.json()["data"]["homework_id"]

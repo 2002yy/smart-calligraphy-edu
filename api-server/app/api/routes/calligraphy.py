@@ -20,6 +20,19 @@ class CalligraphyMatch(BaseModel):
 
 
 @router.get(
+    "/sign",
+    summary="获取图片签名 URL",
+    description="传入图片路径，返回带签名的临时 URL（用于 SECURE_STATIC=true 时 <img> 加载）。",
+)
+def sign_image(
+    path: str = Query(..., description="图片路径，如 /uploads/homework/2/1/xxx.jpg"),
+):
+    from app.services.token_service import sign_image_path
+    token = sign_image_path(path)
+    return APIResponse(data={"signed_url": f"{path}?token={token}"})
+
+
+@router.get(
     "/match",
     response_model=APIResponse[list[CalligraphyMatch]],
     summary="按字查询名家碑帖",

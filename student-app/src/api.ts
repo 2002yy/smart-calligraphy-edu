@@ -33,12 +33,10 @@ export const studentApi = {
   },
   uploadHomework(payload: {
     task_id: number;
-    student_id: number;
     file: File;
   }) {
     const formData = new FormData();
     formData.append("task_id", String(payload.task_id));
-    formData.append("student_id", String(payload.student_id));
     formData.append("file", payload.file);
     return request.post<FormData, HomeworkUploadResult>("/api/v1/homework/upload", formData, {
       headers: {

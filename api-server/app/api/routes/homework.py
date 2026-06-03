@@ -8,6 +8,7 @@ from app.core.database import get_db
 from app.schemas.common import APIResponse
 from app.schemas.homework import HomeworkRead, HomeworkSubmitRequest, HomeworkUploadRead
 from app.services import HomeworkService
+from app.services.auth_service import get_current_user
 
 try:
     from PIL import Image
@@ -29,10 +30,13 @@ router = APIRouter()
 )
 def upload_homework(
     task_id: int = Form(...),
-    student_id: int = Form(...),
     file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    student_id = current_user["id"]
+    if current_user["role"] != "student":
+        raise HTTPException(status_code=403, detail="仅学生可以上传作业")
     # 校验文件类型
     suffix = (Path(file.filename) if file.filename else Path("")).suffix.lower()
     if suffix not in ALLOWED_SUFFIXES:
