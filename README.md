@@ -102,7 +102,7 @@ student-app (5174) ──┘       │
 cd api-server
 pip install -r requirements.txt
 cp .env.example .env
-uvicorn main:app --reload --port 8000
+uvicorn app.main:app --reload --port 8000
 
 # ② 启动教师端
 cd teacher-web
