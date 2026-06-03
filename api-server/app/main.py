@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from app.api.routes import auth, calligraphy, classes, courses, dashboard, evaluation, homework, reports, reviews, tasks, users
 from app.core.bootstrap import bootstrap_database
 from app.core.config import settings
+from app.services.token_service import verify_token
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -34,7 +35,7 @@ if settings.secure_static:
         if request.url.path.startswith("/uploads/"):
             auth_header = request.headers.get("authorization", "")
             token = auth_header.replace("Bearer ", "").strip()
-            if not token.startswith("dev-token-"):
+            if not verify_token(token):
                 return JSONResponse(status_code=403, content={"code": 1, "message": "无权访问静态资源，请先登录。", "data": None})
         return await call_next(request)
 

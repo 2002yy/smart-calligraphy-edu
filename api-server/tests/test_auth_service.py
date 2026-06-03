@@ -14,7 +14,11 @@ from app.services.auth_service import AuthService
 class TestLogin:
     def test_success_with_valid_credentials(self, db_session, teacher_user):
         result = AuthService.login(db_session, LoginRequest(username="teacher01", password="test_pass"))
-        assert result["access_token"] == "dev-token-1"
+        from app.services.token_service import verify_token
+        payload = verify_token(result["access_token"])
+        assert payload is not None, "token should be valid signed token"
+        assert payload["user_id"] == 1
+        assert payload["role"] == "teacher"
         assert result["token_type"] == "bearer"
         assert result["expires_in"] == 86400
         assert result["user"]["username"] == "teacher01"
