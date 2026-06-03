@@ -196,6 +196,7 @@ export const useStudentStore = defineStore("student", () => {
       });
       submitForm.imageUrl = uploadResult.file_url;
       evaluation.value = null;
+      submitStage.value = "uploaded";
       growth.value = await studentApi.getGrowth(user.value.id);
       setNotice("作业提交成功，可以继续发起 AI 评测。", "success");
       return latestHomework.value;
@@ -223,7 +224,7 @@ export const useStudentStore = defineStore("student", () => {
     }
     try {
       await studentApi.startEvaluation(latestHomework.value.id, provider, true);
-      evaluation.value = await studentApi.getEvaluation(latestHomework.value.id);
+      evaluation.value = await waitEvaluationFinished(latestHomework.value.id);
       growth.value = await studentApi.getGrowth(user.value.id);
       if (provider === "openai") {
         setNotice("OpenAI 评分完成，结果卡片已更新。（旧版）", "success");
