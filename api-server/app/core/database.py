@@ -41,5 +41,9 @@ def init_db():
         if os.getenv("DATABASE_URL"):
             alembic_cfg.set_main_option("sqlalchemy.url", os.environ["DATABASE_URL"])
         command.upgrade(alembic_cfg, "head")
-    except Exception:
+    except Exception as exc:
+        if settings.app_env in ("production", "staging"):
+            raise RuntimeError(f"数据库迁移失败（{settings.app_env} 环境禁止回退）：{exc}") from exc
+        import logging
+        logging.warning("Alembic 迁移失败，回退到 create_all：%s", exc)
         Base.metadata.create_all(bind=engine)
