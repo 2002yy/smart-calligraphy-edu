@@ -125,7 +125,7 @@ def _run_e2e():
         assert dashboard_data["class_id"] == class_id
         assert dashboard_data["task_count"] >= 1
 
-        report_response = client.get(f"/api/v1/reports/class/{class_id}")
+        report_response = client.get(f"/api/v1/reports/class/{class_id}", headers={"Authorization": f"Bearer {token}"})
         assert report_response.status_code == 200
         assert report_response.json()["data"]["class_id"] == class_id
 

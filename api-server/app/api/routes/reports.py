@@ -6,8 +6,8 @@ from app.schemas.common import APIResponse
 from app.schemas.report import ClassReportRead, ReportExportRead, ReportExportRequest, StudentReportRead
 from app.repositories import CourseRepository, ClassroomRepository
 from app.services import ReportService
-from app.services.auth_service import require_role
-from app.services.permission_service import assert_owns_course
+from app.services.auth_service import get_current_user, require_role
+from app.services.permission_service import assert_owns_class, assert_owns_course
 
 router = APIRouter()
 
@@ -17,7 +17,7 @@ router = APIRouter()
     response_model=APIResponse[StudentReportRead],
     summary="获取学生成长报告",
 )
-def student_report(student_id: int, db: Session = Depends(get_db)):
+def student_report(student_id: int, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
     data = StudentReportRead(**ReportService.student_report(db, student_id))
     return APIResponse[StudentReportRead](data=data)
 
@@ -27,7 +27,8 @@ def student_report(student_id: int, db: Session = Depends(get_db)):
     response_model=APIResponse[ClassReportRead],
     summary="获取班级统计报告",
 )
-def class_report(class_id: int, db: Session = Depends(get_db)):
+def class_report(class_id: int, current_user: dict = Depends(require_role(["teacher"])), db: Session = Depends(get_db)):
+    assert_owns_class(db, current_user, class_id)
     data = ClassReportRead(**ReportService.class_report(db, class_id))
     return APIResponse[ClassReportRead](data=data)
 
@@ -38,6 +39,6 @@ def class_report(class_id: int, db: Session = Depends(get_db)):
     summary="导出报告文件",
     description="支持导出学生报告或班级报告，当前返回可演示的文件路径与生成时间。",
 )
-def export_report(payload: ReportExportRequest):
+def export_report(payload: ReportExportRequest, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
     data = ReportExportRead(**ReportService.export_report(payload.type, payload.target_id, payload.format))
     return APIResponse[ReportExportRead](data=data)

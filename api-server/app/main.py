@@ -32,7 +32,7 @@ if settings.secure_static:
 
     @app.middleware("http")
     async def protect_uploads(request: Request, call_next):
-        if request.url.path.startswith("/uploads/"):
+        if request.url.path.startswith("/uploads/") or request.url.path.startswith("/storage/calligraphy_db/"):
             auth_header = request.headers.get("authorization", "")
             token = auth_header.replace("Bearer ", "").strip()
             if not token:

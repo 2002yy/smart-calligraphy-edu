@@ -26,15 +26,20 @@ def assert_owns_homework(db: Session, current_user: dict, homework_id: int) -> d
     hw = HomeworkRepository.get_by_id(db, homework_id)
     if not hw:
         raise HTTPException(status_code=404, detail="homework not found")
-    if current_user["role"] == "student" and hw.student_id != current_user["id"]:
-        _crash("学生只能操作自己的作业")
-    if current_user["role"] == "teacher":
+    role = current_user.get("role")
+    if role == "student":
+        if hw.student_id != current_user["id"]:
+            _crash("学生只能操作自己的作业")
+        return hw
+    if role == "teacher":
         task = TaskRepository.get_by_id(db, hw.task_id)
-        if task:
-            course = CourseRepository.get_by_id(db, task.course_id)
-            if course and course.teacher_id != current_user["id"]:
-                _crash("教师只能操作自己课程下的作业")
-    return hw
+        if not task:
+            _crash("作业任务不存在，无法校验权限")
+        course = CourseRepository.get_by_id(db, task.course_id)
+        if not course or course.teacher_id != current_user["id"]:
+            _crash("教师只能操作自己课程下的作业")
+        return hw
+    _crash("无权操作该作业")
 
 
 def assert_owns_course(db: Session, current_user: dict, course_id: int):

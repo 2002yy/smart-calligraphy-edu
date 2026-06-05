@@ -23,7 +23,7 @@ def list_reviews(
     current_user: dict = Depends(require_role(["teacher"])),
     db: Session = Depends(get_db),
 ):
-    data = [ReviewRead(**item) for item in ReviewService.list_reviews(db, teacher_id=teacher_id, homework_id=homework_id)]
+    data = [ReviewRead(**item) for item in ReviewService.list_reviews(db, teacher_id=current_user["id"], homework_id=homework_id)]
     return APIResponse[list[ReviewRead]](data=data)
 
 

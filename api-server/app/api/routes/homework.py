@@ -99,8 +99,7 @@ def list_homework(
     summary="Get homework detail",
 )
 def get_homework(homework_id: int, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
-    hw = HomeworkService.get_homework(db, homework_id)
-    if current_user["role"] == "student" and current_user["id"] != hw["student_id"]:
-        raise HTTPException(status_code=403, detail="学生只能查看自己的作业")
-    data = HomeworkRead(**hw)
+    from app.services.permission_service import assert_owns_homework
+    assert_owns_homework(db, current_user, homework_id)
+    data = HomeworkRead(**HomeworkService.get_homework(db, homework_id))
     return APIResponse[HomeworkRead](data=data)
