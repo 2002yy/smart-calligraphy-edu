@@ -68,11 +68,12 @@ def upload_homework(
     description="Submit a homework record or finalize a previously uploaded homework item.",
 )
 def submit_homework(payload: HomeworkSubmitRequest, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
-    if current_user["role"] == "student" and payload.student_id is not None and payload.student_id != current_user["id"]:
-        raise HTTPException(status_code=403, detail="学生只能提交自己的作业")
-    if current_user["role"] == "student" and payload.student_id is None:
+    if payload.homework_id:
+        from app.services.permission_service import assert_owns_homework
+        assert_owns_homework(db, current_user, payload.homework_id)
+    if current_user["role"] == "student":
         payload.student_id = current_user["id"]
-    data = HomeworkRead(**HomeworkService.submit_homework(db, payload))
+    data = HomeworkRead(**HomeworkService.submit_homework(db, payload, current_user))
     return APIResponse[HomeworkRead](data=data)
 
 
@@ -88,10 +89,6 @@ def list_homework(
     db: Session = Depends(get_db),
 ):
     student_id = current_user["id"] if current_user["role"] == "student" else None
-    data = [
-        HomeworkRead(**item)
-        for item in HomeworkService.list_homework(db, task_id=task_id, student_id=student_id, status=status)
-    ]
     data = [HomeworkRead(**item) for item in HomeworkService.list_homework(db, task_id=task_id, student_id=student_id, status=status)]
     return APIResponse[list[HomeworkRead]](data=data)
 

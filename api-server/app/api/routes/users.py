@@ -6,7 +6,6 @@ from app.schemas.common import APIResponse
 from app.schemas.user import GrowthRead, UserRead
 from app.services import UserService
 from app.services.auth_service import get_current_user
-from app.services.auth_service import get_current_user
 
 router = APIRouter()
 

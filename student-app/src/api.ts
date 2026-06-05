@@ -23,7 +23,6 @@ export const studentApi = {
     classId: number,
     payload: {
       invite_code: string;
-      student_id: number;
     }
   ) {
     return request.post<never, { class_id: number; student_id: number; status: string }>(`/api/v1/classes/${classId}/join`, payload);

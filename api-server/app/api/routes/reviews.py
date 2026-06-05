@@ -6,6 +6,7 @@ from app.schemas.common import APIResponse
 from app.schemas.review import ReviewCreate, ReviewRead
 from app.services import ReviewService
 from app.services.auth_service import require_role
+from app.services.permission_service import assert_owns_course, assert_owns_homework
 
 router = APIRouter()
 
@@ -33,6 +34,7 @@ def list_reviews(
     description="教师可录入评语与最终得分；若该作业已有批阅记录，则本接口执行更新。",
 )
 def submit_review(payload: ReviewCreate, current_user: dict = Depends(require_role(["teacher"])), db: Session = Depends(get_db)):
+    assert_owns_homework(db, current_user, payload.homework_id)
     data = ReviewRead(**ReviewService.create_review(db, payload))
     return APIResponse[ReviewRead](data=data)
 
@@ -43,5 +45,6 @@ def submit_review(payload: ReviewCreate, current_user: dict = Depends(require_ro
     summary="获取作业批阅详情",
 )
 def get_review(homework_id: int, current_user: dict = Depends(require_role(["teacher"])), db: Session = Depends(get_db)):
+    assert_owns_homework(db, current_user, homework_id)
     data = ReviewRead(**ReviewService.get_review(db, homework_id))
     return APIResponse[ReviewRead](data=data)

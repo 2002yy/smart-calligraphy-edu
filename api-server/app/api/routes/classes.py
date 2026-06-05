@@ -6,7 +6,9 @@ from app.schemas.classroom import ClassCreate, ClassJoinRead, ClassJoinRequest, 
 from app.schemas.common import APIResponse
 from app.services import ClassService
 from app.services.auth_service import get_current_user, require_role
+from app.services.permission_service import assert_owns_course, assert_owns_class
 from app.services.auth_service import get_current_user, require_role
+from app.services.permission_service import assert_owns_course, assert_owns_class
 
 router = APIRouter()
 
@@ -28,6 +30,7 @@ def list_classes(course_id: int | None = None, db: Session = Depends(get_db)):
     summary="创建班级",
 )
 def create_class(payload: ClassCreate, current_user: dict = Depends(require_role(["teacher"])), db: Session = Depends(get_db)):
+    assert_owns_course(db, current_user, payload.course_id)
     data = ClassRead(**ClassService.create_class(db, payload))
     return APIResponse[ClassRead](data=data)
 
@@ -38,6 +41,7 @@ def create_class(payload: ClassCreate, current_user: dict = Depends(require_role
     summary="学生加入班级",
 )
 def join_class(class_id: int, payload: ClassJoinRequest, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    payload.student_id = current_user["id"]
     data = ClassJoinRead(**ClassService.join_class(db, class_id, payload))
     return APIResponse[ClassJoinRead](data=data)
 
@@ -48,5 +52,6 @@ def join_class(class_id: int, payload: ClassJoinRequest, current_user: dict = De
     summary="获取班级成员",
 )
 def get_members(class_id: int, current_user: dict = Depends(require_role(["teacher"])), db: Session = Depends(get_db)):
+    assert_owns_class(db, current_user, class_id)
     data = ClassMembersRead(**ClassService.get_members(db, class_id))
     return APIResponse[ClassMembersRead](data=data)

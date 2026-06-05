@@ -4,8 +4,10 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.common import APIResponse
 from app.schemas.report import ClassReportRead, ReportExportRead, ReportExportRequest, StudentReportRead
+from app.repositories import CourseRepository, ClassroomRepository
 from app.services import ReportService
 from app.services.auth_service import require_role
+from app.services.permission_service import assert_owns_course
 
 router = APIRouter()
 

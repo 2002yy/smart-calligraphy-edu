@@ -6,7 +6,7 @@ from app.schemas.common import APIResponse
 from app.schemas.course import CourseCreate, CourseRead
 from app.services import CourseService
 from app.services.auth_service import require_role
-from app.services.auth_service import get_current_user, require_role
+from app.services.permission_service import assert_owns_course
 
 router = APIRouter()
 
@@ -33,6 +33,7 @@ def list_courses(
     description="教师创建一门新课程，Swagger 中可直接使用示例请求体进行答辩演示。",
 )
 def create_course(payload: CourseCreate, current_user: dict = Depends(require_role(["teacher"])), db: Session = Depends(get_db)):
+    payload.teacher_id = current_user["id"]
     data = CourseRead(**CourseService.create_course(db, payload))
     return APIResponse[CourseRead](data=data)
 

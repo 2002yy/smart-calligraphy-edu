@@ -158,8 +158,7 @@ export const useStudentStore = defineStore("student", () => {
     joining.value = true;
     try {
       await studentApi.joinClass(selectedClassId.value, {
-        invite_code: joinForm.inviteCode,
-        student_id: user.value.id
+        invite_code: joinForm.inviteCode
       });
       classes.value = await studentApi.getClasses();
       setNotice("加入班级成功，可以开始查看任务并提交作业。", "success");
