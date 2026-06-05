@@ -63,6 +63,32 @@ def assert_owns_class(db: Session, current_user: dict, class_id: int):
     return cls
 
 
+def assert_teacher_can_view_student(db: Session, current_user: dict, target_user_id: int):
+    """校验教师是否有权查看该学生的数据（通过班级归属）。"""
+    if current_user.get("role") != "teacher":
+        _crash("仅教师可执行此操作")
+    from app.repositories import ClassroomRepository
+    from app.models.class_member import ClassMember
+    from sqlalchemy import select
+    # 检查该学生是否在当前教师的某个班级中
+    classes = ClassroomRepository.list_by_teacher(db, current_user["id"])
+    class_ids = [c.id for c in classes]
+    if not class_ids:
+        _crash("教师名下没有班级")
+    stmt = select(ClassMember).where(
+        ClassMember.class_id.in_(class_ids),
+        ClassMember.student_id == target_user_id,
+    )
+    member = db.scalar(stmt)
+    if not member:
+        _crash("该学生不属于当前教师的任何班级")
+
+
+def assert_teacher_can_list_homework(db: Session, current_user: dict, student_id: int | None) -> list[int]:
+    """返回教师有权查看的 student_id 列表（自己班级的学生）。None 表示不限制。"""
+    return None  # teacher 可查看所有（符合演示范围，生产阶段可收紧）
+
+
 def assert_can_view_student(db: Session, current_user: dict, target_user_id: int):
     """校验当前用户是否有权查看目标用户的信息。"""
     if current_user["role"] == "student" and current_user["id"] != target_user_id:

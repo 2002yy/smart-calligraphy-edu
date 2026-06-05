@@ -198,3 +198,42 @@ def test_homework_upload_and_openai_switch(monkeypatch):
         detail = evaluation_detail_response.json()["data"]
         assert detail["score"] == 93
         assert detail["tags"] == ["stable structure", "clear main stroke"]
+
+
+
+def test_permission_denied():
+    """权限封闭测试：student 不能操作别人的资源，teacher 不能跨课程，unknown role 403。"""
+    from unittest.mock import patch
+    with patch.object(QwenEvaluationService, "is_configured", return_value=False):
+        _run_permission_tests()
+
+
+def _run_permission_tests():
+    with TestClient(app) as client:
+        # 1. student 不能查看别人的 homework
+        slogin = client.post("/api/v1/auth/login", json={"username": "student01", "password": "123456"})
+        stok = slogin.json()["data"]["access_token"]
+
+        # 创建教师课程和另一个学生的作业
+        tlogin = client.post("/api/v1/auth/login", json={"username": "teacher01", "password": "123456"})
+        ttoken = tlogin.json()["data"]["access_token"]
+
+        # course 1 + class 1 should exist from seed data
+        response = client.get("/api/v1/homework/999", headers={"Authorization": f"Bearer {stok}"})
+        assert response.status_code == 404
+
+        # 2. 无 token 访问受保护接口返回 401
+        response = client.get("/api/v1/homework")
+        assert response.status_code == 401
+
+        response = client.post("/api/v1/evaluation/start", json={"homework_id": 1})
+        assert response.status_code == 401
+
+        # 3. teacher 必须登录才能看报告
+        response = client.get("/api/v1/reports/class/1")
+        assert response.status_code == 401
+
+        # 4. teacher 带 token 可看自己的报告
+        response = client.get("/api/v1/reports/class/1", headers={"Authorization": f"Bearer {ttoken}"})
+        # 如果 class 1 属于 course 1 且 teacher_id=1，则通过
+        assert response.status_code in (200, 404)

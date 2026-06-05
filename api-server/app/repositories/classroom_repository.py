@@ -36,6 +36,11 @@ class ClassroomRepository:
         return classroom
 
     @staticmethod
+    def list_by_course_ids(db: Session, course_ids: list[int]) -> list[Classroom]:
+        stmt = select(Classroom).where(Classroom.course_id.in_(course_ids)).order_by(Classroom.id.desc())
+        return list(db.scalars(stmt).all())
+
+    @staticmethod
     def update_class(db: Session, classroom: Classroom) -> Classroom:
         db.add(classroom)
         db.commit()
