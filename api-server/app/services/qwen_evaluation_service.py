@@ -299,4 +299,5 @@ class QwenEvaluationService:
             tags=tags,
             advice=advice,
             thinking_steps=thinking_steps,
+            annotations=result.get("annotations", []),
         ).model_dump()

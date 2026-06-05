@@ -100,13 +100,8 @@ class FileStorageService:
 
         try:
             img = Image.open(src_path).convert("RGB")
-            orig_w, orig_h = img.size
-
-            # 缩放到标准尺寸，记录缩放比例
             img.thumbnail((800, 800))
             w, h = img.size
-            scale_x = w / orig_w
-            scale_y = h / orig_h
             draw = ImageDraw.Draw(img)
 
             # 加载中文字体
@@ -130,11 +125,11 @@ class FileStorageService:
             # ── 绘制检测框标注（在底部评分条之前）──
             if annotations:
                 for ann in annotations:
-                    # 将原始坐标缩放到缩略图尺寸
-                    x1 = int(ann["x1"] * scale_x)
-                    y1 = int(ann["y1"] * scale_y)
-                    x2 = int(ann["x2"] * scale_x)
-                    y2 = int(ann["y2"] * scale_y)
+                    # 将百分比坐标(0-100)转换为缩略图像素坐标
+                    x1 = int(ann["x1"] / 100 * w)
+                    y1 = int(ann["y1"] / 100 * h)
+                    x2 = int(ann["x2"] / 100 * w)
+                    y2 = int(ann["y2"] / 100 * h)
 
                     # 裁剪到图像边界
                     x1 = max(0, min(w, x1))
