@@ -5,6 +5,7 @@ from app.core.database import get_db
 from app.schemas.common import APIResponse
 from app.schemas.review import ReviewCreate, ReviewRead
 from app.services import ReviewService
+from app.services.auth_service import require_role
 
 router = APIRouter()
 
@@ -18,6 +19,7 @@ router = APIRouter()
 def list_reviews(
     teacher_id: int | None = None,
     homework_id: int | None = None,
+    current_user: dict = Depends(require_role(["teacher"])),
     db: Session = Depends(get_db),
 ):
     data = [ReviewRead(**item) for item in ReviewService.list_reviews(db, teacher_id=teacher_id, homework_id=homework_id)]
@@ -30,7 +32,7 @@ def list_reviews(
     summary="提交教师批阅",
     description="教师可录入评语与最终得分；若该作业已有批阅记录，则本接口执行更新。",
 )
-def submit_review(payload: ReviewCreate, db: Session = Depends(get_db)):
+def submit_review(payload: ReviewCreate, current_user: dict = Depends(require_role(["teacher"])), db: Session = Depends(get_db)):
     data = ReviewRead(**ReviewService.create_review(db, payload))
     return APIResponse[ReviewRead](data=data)
 
@@ -40,6 +42,6 @@ def submit_review(payload: ReviewCreate, db: Session = Depends(get_db)):
     response_model=APIResponse[ReviewRead],
     summary="获取作业批阅详情",
 )
-def get_review(homework_id: int, db: Session = Depends(get_db)):
+def get_review(homework_id: int, current_user: dict = Depends(require_role(["teacher"])), db: Session = Depends(get_db)):
     data = ReviewRead(**ReviewService.get_review(db, homework_id))
     return APIResponse[ReviewRead](data=data)

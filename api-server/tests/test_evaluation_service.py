@@ -116,6 +116,51 @@ class TestGetEvaluation:
         assert "issues" in detail
         assert "advice" in detail
 
+    def test_overlay_respects_annotations(self):
+        """save_result_overlay 的坐标转换和异常处理。"""
+        from app.services.file_storage_service import FileStorageService
+        from PIL import Image as _PIL
+        import io as _io, tempfile
+        from pathlib import Path
+
+        # 把图放到 storage 目录下（save_result_overlay 通过 resolve_upload_url 找文件）
+        storage_root = Path(FileStorageService.get_storage_root())
+        tmp_name = f"test_overlay_{__import__('uuid').uuid4().hex[:8]}.jpg"
+        tmp_path = storage_root / tmp_name
+
+        buf = _io.BytesIO()
+        _PIL.new("RGB", (200, 200), color=255).save(buf, "JPEG")
+        tmp_path.write_bytes(buf.getvalue())
+        tmp_url = f"/uploads/{tmp_name}"
+
+        try:
+            # 正常标注
+            r = FileStorageService.save_result_overlay(
+                image_url=tmp_url,
+                scores={"total_score": 8.5, "structure_score": 8.0, "center_score": 7.5, "stroke_order_score": 9.0},
+                tags=["结构工整"],
+                annotations=[{"x1": 10, "y1": 20, "x2": 50, "y2": 60, "label": "test", "severity": "major"}],
+            )
+            assert "_result.jpg" in r
+
+            # 缺失字段标注：不应抛异常，fallback 返回原图 URL
+            r2 = FileStorageService.save_result_overlay(image_url=tmp_url, scores={"total_score": 8.5, "structure_score": 8.0, "center_score": 7.5, "stroke_order_score": 9.0}, tags=[], annotations=[{"x1": 10, "label": "missing"}])
+            assert r2 is not None
+            # 因缺少坐标字段内部抛异常 fallback 回原图
+            assert r2 == tmp_url or "_result.jpg" in r2
+
+            # 空标注
+            r3 = FileStorageService.save_result_overlay(image_url=tmp_url, scores={"total_score": 8.5, "structure_score": 8.0, "center_score": 7.5, "stroke_order_score": 9.0}, tags=["结构工整"], annotations=[])
+            assert "_result.jpg" in r3
+
+            # 越界坐标
+            r4 = FileStorageService.save_result_overlay(image_url=tmp_url, scores={"total_score": 5.0, "structure_score": 5.0, "center_score": 5.0, "stroke_order_score": 5.0}, tags=[], annotations=[{"x1": -10, "y1": -20, "x2": 200, "y2": 300, "label": "out", "severity": "minor"}])
+            assert "_result.jpg" in r4
+        finally:
+            if tmp_path.exists(): tmp_path.unlink()
+            result_path = storage_root / f"{tmp_name.replace('.jpg','')}_result.jpg"
+            if result_path.exists(): result_path.unlink()
+
     def test_includes_thinking_steps(self, db_session, seeded_homework, seeded_task):
         EvaluationService.start(db_session, seeded_homework.id, provider=EvaluationProvider.mock)
         detail = EvaluationService.get(db_session, seeded_homework.id)

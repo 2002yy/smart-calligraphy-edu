@@ -5,6 +5,7 @@ from app.core.database import get_db
 from app.schemas.common import APIResponse
 from app.schemas.report import ClassReportRead, ReportExportRead, ReportExportRequest, StudentReportRead
 from app.services import ReportService
+from app.services.auth_service import require_role
 
 router = APIRouter()
 

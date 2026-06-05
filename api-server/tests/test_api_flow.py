@@ -110,6 +110,7 @@ def _run_e2e():
                 "final_score": 91,
                 "status": "reviewed",
             },
+            headers={"Authorization": f"Bearer {token}"},
         )
         assert review_response.status_code == 200
         assert review_response.json()["data"]["status"] == "reviewed"

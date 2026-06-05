@@ -125,11 +125,29 @@ npm run dev
 
 ---
 
+## 7. 🗄️ Database Migration
+
+Use Alembic for schema migration. Auto-runs on dev startup; manual for production.
+
+```bash
+cd api-server
+alembic upgrade head           # apply pending migrations
+alembic history                # view migration history
+alembic revision --autogenerate -m "description"  # generate from model changes
+```
+
+- **dev** environment: `init_db()` runs `alembic upgrade head`, falls back to `create_all` on failure
+- **production / staging**: migration failure blocks startup (no silent fallback)
+
+Config in `alembic.ini` + `alembic/env.py` (auto-imports all models).
+
+---
+
 ## 7. 🧪 Testing / Quality
 
 | 类型 | 覆盖范围 | 用例数 | 状态 |
 |------|---------|--------|------|
-| **pytest**（后端） | 登录认证、Mock 评测、provider 选择、分数范围、思考链 | **28** | ✅ |
+| **pytest**（后端） | 登录认证、Mock 评测、provider 选择、分数范围、思考链 | **29** | ✅ |
 | **Vitest**（前端 store） | 学生登录/登出、选班级、选任务、提交作业、评测、文件选择 | **15** | ✅ |
 | **Playwright**（E2E） | API 冒烟 → 上传 → Mock 评测 → 看板回流 → UI 截图 | **全链路** | ✅ 本地可用，待接入 CI |
 | API 文档 | FastAPI `/docs` 自动生成 | — | ✅ |
