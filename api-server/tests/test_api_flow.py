@@ -35,8 +35,8 @@ def _run_e2e():
                 "name": "Pytest Demo Course",
                 "term": "2026-Spring",
                 "description": "Course used by automated integration test",
-                "teacher_id": 1,
-            },
+                },
+            headers={"Authorization": f"Bearer {token}"},
         )
         assert course_response.status_code == 200
         course_id = course_response.json()["data"]["id"]
@@ -48,13 +48,18 @@ def _run_e2e():
                 "name": "Pytest Demo Class",
                 "invite_code": "PYTEST2026",
             },
+            headers={"Authorization": f"Bearer {token}"},
         )
         assert class_response.status_code == 200
         class_id = class_response.json()["data"]["id"]
 
+        _slogin = client.post("/api/v1/auth/login", json={"username": "student01", "password": "123456"})
+        _stok = _slogin.json()["data"]["access_token"]
+
         join_response = client.post(
             f"/api/v1/classes/{class_id}/join",
             json={"invite_code": "PYTEST2026", "student_id": 2},
+            headers={"Authorization": f"Bearer {_stok}"},
         )
         assert join_response.status_code == 200
         assert join_response.json()["data"]["status"] == "joined"
@@ -76,8 +81,6 @@ def _run_e2e():
         assert task_response.status_code == 200
         task_id = task_response.json()["data"]["id"]
 
-        _slogin = client.post("/api/v1/auth/login", json={"username": "student01", "password": "123456"})
-        _stok = _slogin.json()["data"]["access_token"]
         homework_response = client.post(
             "/api/v1/homework",
             json={
@@ -93,11 +96,12 @@ def _run_e2e():
         evaluation_response = client.post(
             "/api/v1/evaluation/start",
             json={"homework_id": homework_id},
+            headers={"Authorization": f"Bearer {_stok}"},
         )
         assert evaluation_response.status_code == 200
         assert evaluation_response.json()["data"]["homework_id"] == homework_id
 
-        evaluation_detail_response = client.get(f"/api/v1/evaluation/{homework_id}")
+        evaluation_detail_response = client.get(f"/api/v1/evaluation/{homework_id}", headers={"Authorization": f"Bearer {_stok}"})
         assert evaluation_detail_response.status_code == 200
         assert evaluation_detail_response.json()["data"]["total_score"] > 0
 
@@ -180,14 +184,16 @@ def test_homework_upload_and_openai_switch(monkeypatch):
             ),
         )
 
+
         evaluation_response = client.post(
             "/api/v1/evaluation/start",
             json={"homework_id": homework_id, "provider": "openai", "force_refresh": True},
+            headers={"Authorization": f"Bearer {_stok}"},
         )
         assert evaluation_response.status_code == 200
         assert evaluation_response.json()["data"]["provider"] == "openai"
 
-        evaluation_detail_response = client.get(f"/api/v1/evaluation/{homework_id}")
+        evaluation_detail_response = client.get(f"/api/v1/evaluation/{homework_id}", headers={"Authorization": f"Bearer {_stok}"})
         assert evaluation_detail_response.status_code == 200
         detail = evaluation_detail_response.json()["data"]
         assert detail["score"] == 93

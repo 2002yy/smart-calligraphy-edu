@@ -6,7 +6,9 @@ from app.repositories import EvaluationRepository, HomeworkRepository, UserRepos
 
 class UserService:
     @staticmethod
-    def get_user(db: Session, user_id: int) -> dict:
+    def get_user(db: Session, user_id: int, current_user: dict | None = None) -> dict:
+        if current_user and current_user.get("role") == "student" and current_user["id"] != user_id:
+            raise HTTPException(status_code=403, detail="学生只能查看自己的信息")
         user = UserRepository.get_by_id(db, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="user not found")
@@ -17,7 +19,9 @@ class UserService:
         }
 
     @staticmethod
-    def get_growth(db: Session, user_id: int) -> dict:
+    def get_growth(db: Session, user_id: int, current_user: dict | None = None) -> dict:
+        if current_user and current_user.get("role") == "student" and current_user["id"] != user_id:
+            raise HTTPException(status_code=403, detail="学生只能查看自己的成长数据")
         user = UserRepository.get_by_id(db, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="user not found")

@@ -37,12 +37,15 @@ if settings.secure_static:
             token = auth_header.replace("Bearer ", "").strip()
             if not token:
                 token = request.query_params.get("token", "")
-            if not (token and (verify_token(token) or verify_signed_path(token))):
-                return JSONResponse(status_code=403, content={"code": 1, "message": "无权访问静态资源，请先登录。", "data": None})
-            # 验证签名 token 是否绑定当前请求路径
+            normal_auth = verify_token(token)
+            if normal_auth:
+                return await call_next(request)
+
             signed_path = verify_signed_path(token)
-            if signed_path and signed_path != request.url.path:
-                return JSONResponse(status_code=403, content={"code": 1, "message": "签名 Token 与请求路径不匹配。", "data": None})
+            if signed_path and signed_path == request.url.path:
+                return await call_next(request)
+
+            return JSONResponse(status_code=403, content={"code": 1, "message": "无权访问静态资源，请先登录。", "data": None})
         return await call_next(request)
 
 

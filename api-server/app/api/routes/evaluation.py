@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.schemas.common import APIResponse
 from app.schemas.evaluation import EvaluationRead, EvaluationStartRead, EvaluationStartRequest
+from app.repositories import HomeworkRepository
 from app.services import EvaluationService
+from app.services.auth_service import get_current_user, require_role
 
 router = APIRouter()
 
@@ -24,7 +26,12 @@ def list_providers():
     summary="Start evaluation",
     description="Trigger evaluation for one homework item. Supports mock and OpenAI providers.",
 )
-def start_evaluation(payload: EvaluationStartRequest, db: Session = Depends(get_db)):
+def start_evaluation(payload: EvaluationStartRequest, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    # student 只能评测自己的作业
+    if current_user["role"] == "student":
+        hw = HomeworkRepository.get_by_id(db, payload.homework_id)
+        if not hw or hw.student_id != current_user["id"]:
+            raise HTTPException(status_code=403, detail="学生只能评测自己的作业")
     data = EvaluationStartRead(
         **EvaluationService.start(
             db,
@@ -41,6 +48,11 @@ def start_evaluation(payload: EvaluationStartRequest, db: Session = Depends(get_
     response_model=APIResponse[EvaluationRead],
     summary="Get evaluation result",
 )
-def get_evaluation(homework_id: int, db: Session = Depends(get_db)):
+def get_evaluation(homework_id: int, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    # student 只能看自己的评测
+    if current_user["role"] == "student":
+        hw = HomeworkRepository.get_by_id(db, homework_id)
+        if not hw or hw.student_id != current_user["id"]:
+            raise HTTPException(status_code=403, detail="学生只能查看自己作业的评测")
     data = EvaluationRead(**EvaluationService.get(db, homework_id))
     return APIResponse[EvaluationRead](data=data)

@@ -44,11 +44,14 @@ class HomeworkService:
         }
 
     @staticmethod
-    def submit_homework(db: Session, payload: HomeworkSubmitRequest) -> dict:
+    def submit_homework(db: Session, payload: HomeworkSubmitRequest, current_user: dict | None = None) -> dict:
         if payload.homework_id is not None:
             homework = HomeworkRepository.get_by_id(db, payload.homework_id)
             if not homework:
                 raise HTTPException(status_code=404, detail="homework not found")
+            # 如果传入了当前用户且是 student，校验归属
+            if current_user and current_user.get("role") == "student" and homework.student_id != current_user["id"]:
+                raise HTTPException(status_code=403, detail="学生只能提交自己的作业")
             if payload.image_url:
                 homework.image_url = payload.image_url
             homework.status = "submitted"
