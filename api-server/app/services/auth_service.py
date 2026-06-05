@@ -44,7 +44,7 @@ class AuthService:
 
     @staticmethod
     def current_user(db: Session, authorization: str | None = None) -> dict:
-        """解析 token 并返回用户信息（兼容旧版 dev-token 和新版签名 token）"""
+        """解析 token 并返回用户信息（兼容旧版 dev-token 和新版签名 token）。无 token 时抛 401。"""
         user_id = None
         if authorization:
             token = authorization.replace("Bearer ", "").strip()
@@ -62,7 +62,7 @@ class AuthService:
             else:
                 raise HTTPException(status_code=401, detail="invalid token")
         else:
-            user_id = 1  # 演示默认值
+            raise HTTPException(status_code=401, detail="缺少 Authorization 请求头，请先登录")
 
         user = UserRepository.get_by_id(db, user_id)
         if not user:

@@ -70,8 +70,8 @@ def _run_e2e():
                 "structure_weight": 40,
                 "center_weight": 30,
                 "stroke_order_weight": 30,
-                "created_by": 1,
             },
+            headers={"Authorization": f"Bearer {token}"},
         )
         assert task_response.status_code == 200
         task_id = task_response.json()["data"]["id"]
@@ -124,6 +124,8 @@ def _run_e2e():
 
 def test_homework_upload_and_openai_switch(monkeypatch):
     with TestClient(app) as client:
+        _tlogin = client.post("/api/v1/auth/login", json={"username": "teacher01", "password": "123456"})
+        _ttok = _tlogin.json()["data"]["access_token"]
         task_response = client.post(
             "/api/v1/tasks",
             json={
@@ -135,8 +137,8 @@ def test_homework_upload_and_openai_switch(monkeypatch):
                 "structure_weight": 40,
                 "center_weight": 30,
                 "stroke_order_weight": 30,
-                "created_by": 1,
             },
+            headers={"Authorization": f"Bearer {_ttok}"},
         )
         assert task_response.status_code == 200
         task_id = task_response.json()["data"]["id"]

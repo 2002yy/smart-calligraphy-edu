@@ -5,6 +5,7 @@ from app.core.database import get_db
 from app.schemas.common import APIResponse
 from app.schemas.task import TaskCreate, TaskRead
 from app.services import TaskService
+from app.services.auth_service import get_current_user, require_role
 
 router = APIRouter()
 
@@ -28,7 +29,8 @@ def list_tasks(
     response_model=APIResponse[TaskRead],
     summary="创建教学任务",
 )
-def create_task(payload: TaskCreate, db: Session = Depends(get_db)):
+def create_task(payload: TaskCreate, current_user: dict = Depends(require_role(["teacher"])), db: Session = Depends(get_db)):
+    payload.created_by = current_user["id"]
     data = TaskRead(**TaskService.create_task(db, payload))
     return APIResponse[TaskRead](data=data)
 
@@ -48,6 +50,6 @@ def get_task(task_id: int, db: Session = Depends(get_db)):
     response_model=APIResponse[dict],
     summary="删除任务",
 )
-def delete_task(task_id: int, db: Session = Depends(get_db)):
+def delete_task(task_id: int, current_user: dict = Depends(require_role(["teacher"])), db: Session = Depends(get_db)):
     TaskService.delete_task(db, task_id)
     return APIResponse[dict](data={"deleted": True})

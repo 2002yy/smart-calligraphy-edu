@@ -66,10 +66,14 @@ class TestCurrentUser:
             AuthService.current_user(db_session, "Bearer dev-token-999")
         assert exc.value.status_code == 404
 
-    def test_defaults_to_user_1_without_header(self, db_session, teacher_user):
-        result = AuthService.current_user(db_session, authorization=None)
-        assert result["id"] == 1
+    def test_defaults_to_user_1_without_header(self, db_session):
+        """无 token 时应抛出 401。"""
+        with pytest.raises(HTTPException) as exc:
+            AuthService.current_user(db_session, authorization=None)
+        assert exc.value.status_code == 401
 
-    def test_defaults_to_user_1_with_empty_string(self, db_session, teacher_user):
-        result = AuthService.current_user(db_session, authorization="")
-        assert result["id"] == 1
+    def test_defaults_to_user_1_with_empty_string(self, db_session):
+        """空 token 时应抛出 401。"""
+        with pytest.raises(HTTPException) as exc:
+            AuthService.current_user(db_session, authorization="")
+        assert exc.value.status_code == 401

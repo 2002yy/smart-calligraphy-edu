@@ -58,3 +58,9 @@ class Settings(BaseModel):
 
 
 settings = Settings()
+
+# 生产环境检查：JWT_SECRET 必须修改默认值
+if settings.app_env in ("production", "staging") and settings.jwt_secret == "change_me":
+    raise RuntimeError(
+        "JWT_SECRET 是默认值 'change_me'，不安全。请在 .env 中设置为随机字符串。"
+    )
