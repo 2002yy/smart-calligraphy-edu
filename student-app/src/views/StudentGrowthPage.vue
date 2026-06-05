@@ -107,7 +107,7 @@ const recentLabels = computed(() => growth.value?.recent_labels ?? []);
           </div>
           <ul class="speech-list">
             <li>坚持每周完成至少一次书法练习，系统会自动记录你的进步轨迹。</li>
-            <li>评分趋势可以直观地看到自己在结构、重心和笔顺上的变化。</li>
+            <li>评分趋势可以直观地看到自己在结构、重心和笔法上的变化。</li>
             <li>多看每次评测后的练习建议，针对性改进最能提升水平。</li>
           </ul>
         </section>

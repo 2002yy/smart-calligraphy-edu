@@ -156,7 +156,7 @@ function formatDate(value?: string | null) {
           <div class="review-scores" v-if="review.structure_score != null">
             <div class="mini-score"><span>结构</span><b>{{ review.structure_score }}</b></div>
             <div class="mini-score"><span>重心</span><b>{{ review.center_score }}</b></div>
-            <div class="mini-score"><span>笔顺</span><b>{{ review.stroke_order_score }}</b></div>
+            <div class="mini-score"><span>笔法</span><b>{{ review.stroke_order_score }}</b></div>
           </div>
 
           <div class="review-grid">
@@ -266,7 +266,7 @@ function formatDate(value?: string | null) {
               <div class="drawer-sub-scores" v-if="activeReview.structure_score != null">
                 <article><span>结构</span><b>{{ activeReview.structure_score }}</b></article>
                 <article><span>重心</span><b>{{ activeReview.center_score }}</b></article>
-                <article><span>笔顺</span><b>{{ activeReview.stroke_order_score }}</b></article>
+                <article><span>笔法</span><b>{{ activeReview.stroke_order_score }}</b></article>
               </div>
             </section>
 

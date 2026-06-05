@@ -77,7 +77,7 @@ const { user, loading, tasks, selectedTaskId, selectedTask } = storeToRefs(store
           </div>
           <div class="reading-line">
             <b>
-              结构 {{ selectedTask.structure_weight }} / 重心 {{ selectedTask.center_weight }} / 笔顺
+              结构 {{ selectedTask.structure_weight }} / 重心 {{ selectedTask.center_weight }} / 笔法
               {{ selectedTask.stroke_order_weight }}
             </b>
             <span>评分权重</span>

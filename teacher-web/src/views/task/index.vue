@@ -170,7 +170,7 @@ function confirmDelete(task: Task) {
           <div class="weight-row">
             <span>结构布局 40%</span>
             <span>重心控制 30%</span>
-            <span>笔顺规范 30%</span>
+            <span>笔法规范 30%</span>
           </div>
         </section>
       </form>

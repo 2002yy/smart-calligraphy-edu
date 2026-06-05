@@ -116,7 +116,7 @@ function startThinkingAnimation(provider = "auto") {
     { step: 3, title: "单字分割", detail: "分割单字区域...", status: "pending" },
     { step: 4, title: "结构分析", detail: "分析字形结构...", status: "pending" },
     { step: 5, title: "重心检测", detail: "检测书写重心...", status: "pending" },
-    { step: 6, title: "笔顺验证", detail: "验证笔画顺序...", status: "pending" },
+    { step: 6, title: "笔法验证", detail: "分析笔画规范性...", status: "pending" },
     { step: 7, title: "综合评分", detail: "生成最终评分...", status: "pending" },
   ];
   localThinkingSteps.value = mockSteps;
