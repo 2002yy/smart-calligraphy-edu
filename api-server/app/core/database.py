@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from pathlib import Path
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
@@ -30,4 +31,15 @@ def get_db():
 
 
 def init_db():
-    Base.metadata.create_all(bind=engine)
+    """通过 Alembic 执行数据库迁移，回退到 create_all。"""
+    try:
+        import os
+        from alembic.config import Config
+        from alembic import command
+
+        alembic_cfg = Config(Path(__file__).resolve().parent.parent.parent / "alembic.ini")
+        if os.getenv("DATABASE_URL"):
+            alembic_cfg.set_main_option("sqlalchemy.url", os.environ["DATABASE_URL"])
+        command.upgrade(alembic_cfg, "head")
+    except Exception:
+        Base.metadata.create_all(bind=engine)
