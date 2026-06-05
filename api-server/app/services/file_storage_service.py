@@ -68,10 +68,19 @@ class FileStorageService:
 
     @staticmethod
     def resolve_upload_url(file_url: str) -> Path:
+        """将文件 URL 解析为绝对路径，并验证路径在 storage_root 下（防路径穿越）。"""
         normalized = file_url.strip()
         if normalized.startswith("/uploads/"):
             normalized = normalized[len("/uploads/") :]
-        return FileStorageService.get_storage_root() / normalized.replace("/", os.sep)
+        # 防止空路径退化为 storage_root 本身
+        if not normalized:
+            raise ValueError(f"Invalid file URL: {file_url}")
+        storage_root = FileStorageService.get_storage_root().resolve()
+        target = (storage_root / normalized.replace("/", os.sep)).resolve()
+        # 路径穿越防护：确保目标路径在 storage_root 之下
+        if not str(target).startswith(str(storage_root)):
+            raise ValueError(f"Path traversal detected: {file_url} resolves outside storage root")
+        return target
 
     @staticmethod
     def save_result_overlay(

@@ -12,3 +12,7 @@ __pycache__/
 *.pyo
 .pytest_cache/
 test_smart_calligraphy.db
+*.zip
+test-images/
+test_*.jpg
+overlay_test.jpg

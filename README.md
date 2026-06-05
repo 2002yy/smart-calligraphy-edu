@@ -28,16 +28,29 @@
 
 ### 核心展示页面
 
-| 模块 | 页面 | 说明 |
+| 模块 | 截图 | 说明 |
 |------|------|------|
-| 👨‍🏫 教师端 | 教学看板 | 任务管理、学生进度总览 |
-| 👨‍🏫 教师端 | 任务编排 | 发布书法练习任务、设定评分权重 |
-| 👩‍🎓 学生端 | 任务中心 | 待完成练习列表 |
-| 👩‍🎓 学生端 | 作品上传 | 拍照/上传书法作品 |
-| 🤖 AI 评分 | 评分结果页 | 结构/重心/笔法三维评分 + 问题标签 |
-| 📈 成长档案 | 历史记录 | 历次评分趋势与教师评语 |
+| 👨‍🏫 教师端 | [教学看板](docs/demo/screenshots/01-teacher-dashboard.png) | 登录后教学看板，左侧选择课程/班级，右侧展示班级统计数据 |
+| 👨‍🏫 教师端 | [任务编排](docs/demo/screenshots/02-task-publish.png) | 发布书法练习任务、设定练习字和评分权重 |
+| 👩‍🎓 学生端 | [学习总览](docs/demo/screenshots/03-student-overview.png) | 学生登录后的学习总览，展示班级、任务和最近反馈 |
+| 👩‍🎓 学生端 | [作品提交](docs/demo/screenshots/04-student-upload.png) | 提交书法作品页面，支持拍照/上传 |
+| 📈 成长档案 | [历史记录](docs/demo/screenshots/05-growth-archive.png) | 历次评分趋势与教师评语 |
 
-> 📸 截图待补充。运行后可自行截取。
+![Teacher Dashboard](docs/demo/screenshots/01-teacher-dashboard.png)
+*教师端教学看板 — 班级学习状态与统计数据*
+
+![Task Publish](docs/demo/screenshots/02-task-publish.png)
+*任务编排 — 发布书法训练任务并设定评分权重*
+
+![Student Overview](docs/demo/screenshots/03-student-overview.png)
+*学生学习总览 — 当前任务与最近反馈*
+
+![Submit Upload](docs/demo/screenshots/04-student-upload.png)
+*作品上传 — 拍照/提交书法作业*
+
+![Growth Archive](docs/demo/screenshots/05-growth-archive.png)
+*成长档案 — 历次评分趋势与反馈*
+
 > Demo 待录清单见 [`docs/demo/README.md`](docs/demo/README.md)
 
 ---
@@ -169,7 +182,7 @@ Config in `alembic.ini` + `alembic/env.py` (auto-imports all models).
 
 | 类型 | 覆盖范围 | 用例数 | 状态 |
 |------|---------|--------|------|
-| **pytest**（后端） | 登录认证、Mock 评测、provider 选择、分数范围、思考链 | **30** | ✅ |
+| **pytest**（后端） | 登录认证、权限校验、Mock 评测、provider 选择、分数范围、思考链、跨用户/跨角色负例 | **74** | ✅ |
 | **Vitest**（前端 store） | 登录/登出、班级、任务、提交、评测、文件选择 | **15** | ✅ |
 | **Playwright**（E2E） | API 冒烟 → 上传 → Mock 评测 → 看板回流 → UI 截图 | **全链路** | ✅ 本地可用，✅ CI 已接入 |
 | API 文档 | FastAPI `/docs` 自动生成 | — | ✅ |

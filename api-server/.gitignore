@@ -1,0 +1,36 @@
+# ─── Python ─────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+env/
+
+# ─── Environment ─────────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ─── Database ────────────────────────────────────────────────────────────
+*.db
+*.sqlite3
+
+# ─── Storage (user-uploaded files) ──────────────────────────────────────
+/storage/
+
+# ─── IDE / Editor ───────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ─── Testing / Coverage ─────────────────────────────────────────────────
+.coverage
+htmlcov/
+.pytest_cache/
