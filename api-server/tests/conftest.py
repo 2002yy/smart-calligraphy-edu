@@ -1,5 +1,6 @@
 import atexit
-import hashlib
+import hashlib  # fallback
+import bcrypt
 import os
 import sys
 from pathlib import Path
@@ -58,7 +59,7 @@ def db_session():
 @pytest.fixture
 def teacher_user(db_session: Session):
     from app.models.user import User
-    user = User(username="teacher01", password_hash=hashlib.sha256(b"test_pass").hexdigest(), name="刘老师", role="teacher", school_name="四川大学")
+    user = User(username="teacher01", password_hash=bcrypt.hashpw(b"test_pass", bcrypt.gensalt()).decode(), name="刘老师", role="teacher", school_name="四川大学")
     db_session.add(user)
     db_session.commit()
     return user
@@ -67,7 +68,7 @@ def teacher_user(db_session: Session):
 @pytest.fixture
 def student_user(db_session: Session):
     from app.models.user import User
-    user = User(username="student01", password_hash=hashlib.sha256(b"test_pass").hexdigest(), name="张三", role="student", school_name="四川大学")
+    user = User(username="student01", password_hash=bcrypt.hashpw(b"test_pass", bcrypt.gensalt()).decode(), name="张三", role="student", school_name="四川大学")
     db_session.add(user)
     db_session.commit()
     return user

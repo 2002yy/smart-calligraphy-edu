@@ -1,4 +1,5 @@
-import hashlib
+import hashlib  # fallback
+import bcrypt
 
 from sqlalchemy import select
 
@@ -14,7 +15,7 @@ from app.models.user import User
 
 
 def _hash(password: str) -> str:
-    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode()
 
 
 def seed_demo_data():

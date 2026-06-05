@@ -9,3 +9,5 @@ httpx
 openai
 Pillow
 alembic
+
+bcrypt

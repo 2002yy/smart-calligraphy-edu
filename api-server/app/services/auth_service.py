@@ -1,4 +1,5 @@
-import hashlib
+import hashlib  # fallback
+import bcrypt
 
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -13,7 +14,7 @@ _security = HTTPBearer(auto_error=False)
 
 
 def _hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode()
 
 
 class AuthService:
@@ -31,7 +32,7 @@ class AuthService:
     @staticmethod
     def login(db: Session, payload: LoginRequest) -> dict:
         user = UserRepository.get_by_username(db, payload.username)
-        if not user or user.password_hash != _hash_password(payload.password):
+        if not user or not bcrypt.checkpw(payload.password.encode("utf-8"), user.password_hash.encode()):
             raise HTTPException(status_code=401, detail="username or password invalid")
 
         token = create_token(user.id, user.role)
