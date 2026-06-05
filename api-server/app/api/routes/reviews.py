@@ -6,7 +6,7 @@ from app.schemas.common import APIResponse
 from app.schemas.review import ReviewCreate, ReviewRead
 from app.services import ReviewService
 from app.services.auth_service import require_role
-from app.services.permission_service import assert_owns_course, assert_owns_homework
+from app.services.permission_service import assert_owns_homework
 
 router = APIRouter()
 
@@ -35,7 +35,7 @@ def list_reviews(
 )
 def submit_review(payload: ReviewCreate, current_user: dict = Depends(require_role(["teacher"])), db: Session = Depends(get_db)):
     assert_owns_homework(db, current_user, payload.homework_id)
-    data = ReviewRead(**ReviewService.create_review(db, payload))
+    data = ReviewRead(**ReviewService.create_review(db, payload, teacher_id=current_user["id"]))
     return APIResponse[ReviewRead](data=data)
 
 

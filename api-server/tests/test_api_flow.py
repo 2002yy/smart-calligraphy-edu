@@ -58,7 +58,7 @@ def _run_e2e():
 
         join_response = client.post(
             f"/api/v1/classes/{class_id}/join",
-            json={"invite_code": "PYTEST2026", "student_id": 2},
+            json={"invite_code": "PYTEST2026"},
             headers={"Authorization": f"Bearer {_stok}"},
         )
         assert join_response.status_code == 200
@@ -109,7 +109,6 @@ def _run_e2e():
             "/api/v1/reviews",
             json={
                 "homework_id": homework_id,
-                "teacher_id": 1,
                 "comment": "Structure looks stable. Keep improving the horizontal stroke.",
                 "final_score": 91,
                 "status": "reviewed",

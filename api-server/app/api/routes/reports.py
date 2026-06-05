@@ -4,10 +4,9 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.common import APIResponse
 from app.schemas.report import ClassReportRead, ReportExportRead, ReportExportRequest, StudentReportRead
-from app.repositories import CourseRepository, ClassroomRepository
 from app.services import ReportService
 from app.services.auth_service import get_current_user, require_role
-from app.services.permission_service import assert_owns_class, assert_owns_course
+from app.services.permission_service import assert_can_export_report, assert_owns_class, assert_user_can_view_student
 
 router = APIRouter()
 
@@ -18,6 +17,7 @@ router = APIRouter()
     summary="获取学生成长报告",
 )
 def student_report(student_id: int, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    assert_user_can_view_student(db, current_user, student_id)
     data = StudentReportRead(**ReportService.student_report(db, student_id))
     return APIResponse[StudentReportRead](data=data)
 
@@ -40,5 +40,6 @@ def class_report(class_id: int, current_user: dict = Depends(require_role(["teac
     description="支持导出学生报告或班级报告，当前返回可演示的文件路径与生成时间。",
 )
 def export_report(payload: ReportExportRequest, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    assert_can_export_report(db, current_user, payload.type, payload.target_id)
     data = ReportExportRead(**ReportService.export_report(payload.type, payload.target_id, payload.format))
     return APIResponse[ReportExportRead](data=data)

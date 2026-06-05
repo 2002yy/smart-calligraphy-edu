@@ -6,7 +6,7 @@ from app.schemas.classroom import ClassCreate, ClassJoinRead, ClassJoinRequest, 
 from app.schemas.common import APIResponse
 from app.services import ClassService
 from app.services.auth_service import get_current_user, require_role
-from app.services.permission_service import assert_owns_course, assert_owns_class
+from app.services.permission_service import assert_owns_class, assert_owns_course, assert_student
 
 router = APIRouter()
 
@@ -39,10 +39,8 @@ def create_class(payload: ClassCreate, current_user: dict = Depends(require_role
     summary="学生加入班级",
 )
 def join_class(class_id: int, payload: ClassJoinRequest, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
-    if current_user["role"] != "student":
-        raise HTTPException(status_code=403, detail="仅学生可以加入班级")
-    payload.student_id = current_user["id"]
-    data = ClassJoinRead(**ClassService.join_class(db, class_id, payload))
+    assert_student(db, current_user)
+    data = ClassJoinRead(**ClassService.join_class(db, class_id, current_user["id"], payload.invite_code))
     return APIResponse[ClassJoinRead](data=data)
 
 

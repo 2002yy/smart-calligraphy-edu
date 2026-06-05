@@ -6,6 +6,7 @@ from app.schemas.common import APIResponse
 from app.schemas.task import TaskCreate, TaskRead
 from app.services import TaskService
 from app.services.auth_service import get_current_user, require_role
+from app.services.permission_service import assert_teacher_owns_task
 
 router = APIRouter()
 
@@ -51,5 +52,6 @@ def get_task(task_id: int, db: Session = Depends(get_db)):
     summary="删除任务",
 )
 def delete_task(task_id: int, current_user: dict = Depends(require_role(["teacher"])), db: Session = Depends(get_db)):
+    assert_teacher_owns_task(db, current_user, task_id)
     TaskService.delete_task(db, task_id)
     return APIResponse[dict](data={"deleted": True})

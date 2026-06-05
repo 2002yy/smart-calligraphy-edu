@@ -2,7 +2,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.repositories import ClassMemberRepository, ClassroomRepository, CourseRepository, UserRepository
-from app.schemas.classroom import ClassCreate, ClassJoinRequest
+from app.schemas.classroom import ClassCreate
 
 
 class ClassService:
@@ -37,23 +37,23 @@ class ClassService:
         return ClassService._serialize_class(classroom)
 
     @staticmethod
-    def join_class(db: Session, class_id: int, payload: ClassJoinRequest) -> dict:
+    def join_class(db: Session, class_id: int, student_id: int, invite_code: str) -> dict:
         classroom = ClassroomRepository.get_by_id(db, class_id)
         if not classroom:
             raise HTTPException(status_code=404, detail="class not found")
-        if payload.invite_code != classroom.invite_code:
+        if invite_code != classroom.invite_code:
             raise HTTPException(status_code=400, detail="invite code invalid")
 
-        student = UserRepository.get_by_id(db, payload.student_id)
+        student = UserRepository.get_by_id(db, student_id)
         if not student or student.role != "student":
             raise HTTPException(status_code=404, detail="student not found")
 
-        exists = ClassMemberRepository.get_member(db, class_id, payload.student_id)
+        exists = ClassMemberRepository.get_member(db, class_id, student_id)
         if not exists:
-            ClassMemberRepository.create_member(db, class_id=class_id, student_id=payload.student_id)
+            ClassMemberRepository.create_member(db, class_id=class_id, student_id=student_id)
             classroom.student_count += 1
             ClassroomRepository.update_class(db, classroom)
-        return {"class_id": class_id, "student_id": payload.student_id, "status": "joined"}
+        return {"class_id": class_id, "student_id": student_id, "status": "joined"}
 
     @staticmethod
     def get_members(db: Session, class_id: int) -> dict:

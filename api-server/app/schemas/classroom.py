@@ -41,13 +41,12 @@ class ClassRead(BaseModel):
 
 class ClassJoinRequest(BaseModel):
     invite_code: str
-    student_id: int
+    # student_id 不再从前端传入，路由层强制使用 current_user["id"]
 
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
                 "invite_code": "CALLI2026",
-                "student_id": 2,
             }
         }
     )

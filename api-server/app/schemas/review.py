@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, computed_field
 
 class ReviewCreate(BaseModel):
     homework_id: int
-    teacher_id: int
+    teacher_id: int | None = None  # 路由层强制覆盖为 current_user["id"]
     comment: str | None = None
     final_score: float | None = None
     status: str = "reviewed"
@@ -14,7 +14,6 @@ class ReviewCreate(BaseModel):
         json_schema_extra={
             "example": {
                 "homework_id": 1,
-                "teacher_id": 1,
                 "comment": "Overall structure is stable. Keep refining the horizontal stroke endings.",
                 "final_score": 90,
                 "status": "reviewed",

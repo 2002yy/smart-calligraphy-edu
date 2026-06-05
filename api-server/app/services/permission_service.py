@@ -1,8 +1,10 @@
 """Unified permission helpers: resource ownership + role checks."""
 
 from fastapi import HTTPException
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.models.class_member import ClassMember
 from app.repositories import CourseRepository, ClassroomRepository, HomeworkRepository, TaskRepository, UserRepository
 
 
@@ -67,11 +69,12 @@ def assert_teacher_can_view_student(db: Session, current_user: dict, target_user
     """校验教师是否有权查看该学生的数据（通过班级归属）。"""
     if current_user.get("role") != "teacher":
         _crash("仅教师可执行此操作")
-    from app.repositories import ClassroomRepository
-    from app.models.class_member import ClassMember
-    from sqlalchemy import select
-    # 检查该学生是否在当前教师的某个班级中
-    classes = ClassroomRepository.list_by_teacher(db, current_user["id"])
+    # 获取该教师所有课程 → 班级 → 检查学生是否在其中
+    courses = CourseRepository.list_courses(db, teacher_id=current_user["id"])
+    course_ids = [c.id for c in courses]
+    if not course_ids:
+        _crash("教师名下没有课程")
+    classes = ClassroomRepository.list_by_course_ids(db, course_ids)
     class_ids = [c.id for c in classes]
     if not class_ids:
         _crash("教师名下没有班级")
@@ -94,5 +97,82 @@ def assert_can_view_student(db: Session, current_user: dict, target_user_id: int
     if current_user["role"] == "student" and current_user["id"] != target_user_id:
         _crash("学生只能查看自己的信息")
     if current_user["role"] == "teacher":
-        # teacher 可以查看自己课程下的学生
-        pass  # 简化实现：teacher 可查看任何学生
+        assert_teacher_can_view_student(db, current_user, target_user_id)
+
+
+# ── 以下函数从 auth_helpers.py 移植 ──────────────────────────
+
+def assert_teacher_owns_task(db: Session, current_user: dict, task_id: int):
+    """校验当前教师是否拥有该任务（通过课程归属）。非 teacher 角色不拦截。"""
+    if current_user.get("role") != "teacher":
+        return
+    task = TaskRepository.get_by_id(db, task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="task not found")
+    course = CourseRepository.get_by_id(db, task.course_id)
+    if not course or course.teacher_id != current_user["id"]:
+        _crash("教师只能操作自己课程下的任务")
+
+
+def assert_user_can_view_homework(db: Session, current_user: dict, homework_id: int) -> dict:
+    """校验用户是否有权查看该作业，返回 homework 对象。"""
+    hw = HomeworkRepository.get_by_id(db, homework_id)
+    if not hw:
+        raise HTTPException(status_code=404, detail="homework not found")
+    if current_user.get("role") == "student" and hw.student_id != current_user["id"]:
+        _crash("学生只能查看自己的作业")
+    if current_user.get("role") == "teacher":
+        task = TaskRepository.get_by_id(db, hw.task_id)
+        if task:
+            course = CourseRepository.get_by_id(db, task.course_id)
+            if course and course.teacher_id != current_user["id"]:
+                _crash("教师只能查看自己课程下的作业")
+    return hw
+
+
+def assert_user_can_view_student(db: Session, current_user: dict, target_user_id: int):
+    """统一视角：学生只能看自己，教师只能看自己班级的学生。"""
+    if current_user.get("role") == "student":
+        if current_user["id"] != target_user_id:
+            _crash("学生只能查看自己的信息")
+    elif current_user.get("role") == "teacher":
+        assert_teacher_can_view_student(db, current_user, target_user_id)
+    else:
+        _crash("无权查看用户信息")
+
+
+def assert_teacher_owns_homework(db: Session, current_user: dict, homework_id: int) -> dict:
+    """教师只能操作自己课程下的作业（student 角色不拦截）。"""
+    if current_user.get("role") != "teacher":
+        return
+    hw = HomeworkRepository.get_by_id(db, homework_id)
+    if not hw:
+        raise HTTPException(status_code=404, detail="homework not found")
+    task = TaskRepository.get_by_id(db, hw.task_id)
+    if not task:
+        _crash("作业任务不存在，无法校验权限")
+    course = CourseRepository.get_by_id(db, task.course_id)
+    if not course or course.teacher_id != current_user["id"]:
+        _crash("教师只能操作自己课程下的作业")
+    return hw
+
+
+def assert_can_export_report(db: Session, current_user: dict, report_type: str, target_id: int):
+    """统一校验导出报告的权限。
+
+    学生只能导出自己的报告；
+    教师只能导出自己班级学生的报告或自己班级的班级报告。
+    """
+    if report_type == "student":
+        if current_user.get("role") == "student":
+            if current_user["id"] != target_id:
+                _crash("学生只能导出自己的报告")
+        elif current_user.get("role") == "teacher":
+            assert_teacher_can_view_student(db, current_user, target_id)
+        else:
+            _crash("无权导出报告")
+    elif report_type == "class":
+        assert_teacher(db, current_user)
+        assert_owns_class(db, current_user, target_id)
+    else:
+        _crash("不支持的导出类型")

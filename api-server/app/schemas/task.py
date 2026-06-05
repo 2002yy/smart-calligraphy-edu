@@ -13,7 +13,7 @@ class TaskCreate(BaseModel):
     center_weight: int = 30
     stroke_order_weight: int = 30
     deadline: datetime | None = None
-    created_by: int = 1
+    created_by: int | None = None  # 路由层强制覆盖为 current_user["id"]
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -27,7 +27,6 @@ class TaskCreate(BaseModel):
                 "center_weight": 30,
                 "stroke_order_weight": 30,
                 "deadline": "2026-04-20T23:59:59",
-                "created_by": 1,
             }
         }
     )

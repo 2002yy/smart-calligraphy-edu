@@ -9,6 +9,7 @@ from app.schemas.common import APIResponse
 from app.schemas.homework import HomeworkRead, HomeworkSubmitRequest, HomeworkUploadRead
 from app.services import HomeworkService
 from app.services.auth_service import get_current_user
+from app.services.permission_service import assert_owns_homework, assert_student
 
 try:
     from PIL import Image
@@ -34,9 +35,8 @@ def upload_homework(
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    assert_student(db, current_user)
     student_id = current_user["id"]
-    if current_user["role"] != "student":
-        raise HTTPException(status_code=403, detail="仅学生可以上传作业")
     # 校验文件类型
     suffix = (Path(file.filename) if file.filename else Path("")).suffix.lower()
     if suffix not in ALLOWED_SUFFIXES:
@@ -69,7 +69,6 @@ def upload_homework(
 )
 def submit_homework(payload: HomeworkSubmitRequest, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
     if payload.homework_id:
-        from app.services.permission_service import assert_owns_homework
         assert_owns_homework(db, current_user, payload.homework_id)
     if current_user["role"] == "student":
         payload.student_id = current_user["id"]
@@ -99,7 +98,6 @@ def list_homework(
     summary="Get homework detail",
 )
 def get_homework(homework_id: int, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
-    from app.services.permission_service import assert_owns_homework
     assert_owns_homework(db, current_user, homework_id)
     data = HomeworkRead(**HomeworkService.get_homework(db, homework_id))
     return APIResponse[HomeworkRead](data=data)

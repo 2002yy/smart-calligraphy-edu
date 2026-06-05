@@ -7,7 +7,7 @@ class CourseCreate(BaseModel):
     name: str
     term: str
     description: str | None = None
-    teacher_id: int = 1
+    teacher_id: int | None = None  # 路由层强制覆盖为 current_user["id"]
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -15,7 +15,6 @@ class CourseCreate(BaseModel):
                 "name": "Smart Calligraphy Demo Course",
                 "term": "2026-Spring",
                 "description": "Foundation course for calligraphy practice demo",
-                "teacher_id": 1,
             }
         }
     )

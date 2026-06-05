@@ -1,12 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.schemas.common import APIResponse
 from app.schemas.evaluation import EvaluationRead, EvaluationStartRead, EvaluationStartRequest
-from app.repositories import HomeworkRepository
 from app.services import EvaluationService
-from app.services.auth_service import get_current_user, require_role
+from app.services.auth_service import get_current_user
+from app.services.permission_service import assert_owns_homework
 
 router = APIRouter()
 
@@ -27,7 +27,6 @@ def list_providers():
     description="Trigger evaluation for one homework item. Supports mock and OpenAI providers.",
 )
 def start_evaluation(payload: EvaluationStartRequest, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
-    from app.services.permission_service import assert_owns_homework
     assert_owns_homework(db, current_user, payload.homework_id)
     data = EvaluationStartRead(
         **EvaluationService.start(
@@ -46,7 +45,6 @@ def start_evaluation(payload: EvaluationStartRequest, current_user: dict = Depen
     summary="Get evaluation result",
 )
 def get_evaluation(homework_id: int, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
-    from app.services.permission_service import assert_owns_homework
     assert_owns_homework(db, current_user, homework_id)
     data = EvaluationRead(**EvaluationService.get(db, homework_id))
     return APIResponse[EvaluationRead](data=data)

@@ -50,12 +50,13 @@ class ReviewService:
         return serialized
 
     @staticmethod
-    def create_review(db: Session, payload: ReviewCreate) -> dict:
+    def create_review(db: Session, payload: ReviewCreate, teacher_id: int | None = None) -> dict:
         homework = HomeworkRepository.get_by_id(db, payload.homework_id)
         if not homework:
             raise HTTPException(status_code=404, detail="homework not found")
 
-        teacher = UserRepository.get_by_id(db, payload.teacher_id)
+        resolved_teacher_id = teacher_id or payload.teacher_id
+        teacher = UserRepository.get_by_id(db, resolved_teacher_id)
         if not teacher or teacher.role != "teacher":
             raise HTTPException(status_code=404, detail="teacher not found")
 
@@ -66,7 +67,7 @@ class ReviewService:
             final_score = evaluation.total_score if evaluation else None
 
         if existing:
-            existing.teacher_id = payload.teacher_id
+            existing.teacher_id = resolved_teacher_id
             existing.comment = payload.comment
             existing.final_score = final_score
             existing.review_status = payload.status
@@ -75,7 +76,7 @@ class ReviewService:
             review = ReviewRepository.create_review(
                 db,
                 homework_id=payload.homework_id,
-                teacher_id=payload.teacher_id,
+                teacher_id=resolved_teacher_id,
                 comment=payload.comment,
                 final_score=final_score,
                 review_status=payload.status,
