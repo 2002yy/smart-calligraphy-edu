@@ -60,7 +60,7 @@ class QwenEvaluationResult(BaseModel):
     center_score: float = Field(ge=0, le=10)
     center_observation: str = Field(default="")
     center_suggestion: str = Field(default="")
-    stroke_order_score: float = Field(ge=0, le=10)
+    stroke_order_score: float = Field(ge=0, le=10)  # 笔法规范性评分（字段名保留历史兼容，对外语义为笔法质量）
     stroke_order_observation: str = Field(default="")
     stroke_order_suggestion: str = Field(default="")
     tags: list[str] = Field(default_factory=list)

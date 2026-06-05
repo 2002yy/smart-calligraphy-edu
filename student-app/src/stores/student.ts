@@ -191,7 +191,6 @@ export const useStudentStore = defineStore("student", () => {
       latestHomework.value = await studentApi.submitHomework({
         homework_id: uploadResult.homework_id,
         task_id: selectedTask.value.id,
-        student_id: user.value.id,
         image_url: uploadResult.file_url
       });
       submitForm.imageUrl = uploadResult.file_url;

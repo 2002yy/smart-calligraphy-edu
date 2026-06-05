@@ -47,7 +47,6 @@ export const studentApi = {
   submitHomework(payload: {
     homework_id?: number;
     task_id: number;
-    student_id: number;
     image_url?: string;
   }) {
     return request.post<never, Homework>("/api/v1/homework", payload);
