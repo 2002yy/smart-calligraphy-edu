@@ -77,3 +77,11 @@ class TestCurrentUser:
         with pytest.raises(HTTPException) as exc:
             AuthService.current_user(db_session, authorization="")
         assert exc.value.status_code == 401
+
+    def test_dev_token_rejected_in_production(self, db_session, monkeypatch):
+        """dev-token 在生产环境应被拒绝。"""
+        from app.core.config import settings
+        monkeypatch.setattr(settings, "app_env", "production")
+        with pytest.raises(HTTPException) as exc:
+            AuthService.current_user(db_session, "Bearer dev-token-1")
+        assert exc.value.status_code == 401

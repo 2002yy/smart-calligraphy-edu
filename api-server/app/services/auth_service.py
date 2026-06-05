@@ -6,6 +6,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.config import settings
 from app.repositories import UserRepository
 from app.schemas.auth import LoginRequest
 from app.services.token_service import create_token, verify_token
@@ -54,8 +55,8 @@ class AuthService:
             payload = verify_token(token)
             if payload:
                 user_id = payload["user_id"]
-            # 旧版兼容：dev-token-{user_id}
-            elif token.startswith("dev-token-"):
+            # 旧版兼容：dev-token-{user_id}（仅 dev 环境可用）
+            elif settings.app_env == "dev" and token.startswith("dev-token-"):
                 try:
                     user_id = int(token.removeprefix("dev-token-"))
                 except ValueError:
