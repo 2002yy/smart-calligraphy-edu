@@ -10,7 +10,8 @@
 | 4 | Student Upload Flow | ✅ | `screenshots/04-student-upload.png` |
 | 5 | Growth Archive | ✅ | `screenshots/05-growth-archive.png` |
 
-## GIF / Video Demo ⏳
+## GIF / Video Demo ✅
 
-- [ ] 30s screen recording / animated GIF showing full workflow:
-      Teacher login → Create task → Student upload → AI scoring → Review
+| # | Asset | Status | File |
+|---|-------|--------|------|
+| 1 | Full workflow recording (~30s) | ✅ | `demo-recording.mp4` |

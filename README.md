@@ -51,7 +51,13 @@
 ![Growth Archive](docs/demo/screenshots/05-growth-archive.png)
 *成长档案 — 历次评分趋势与反馈*
 
-> Demo 待录清单见 [`docs/demo/README.md`](docs/demo/README.md)
+### 🎬 Demo 视频
+
+[![Demo Video](docs/demo/screenshots/01-teacher-dashboard.png)](docs/demo/demo-recording.mp4)
+*点击截图观看完整操作演示（教师登录 → 任务发布 → 学生上传 → AI 评分 → 成长档案）*
+
+> 视频文件: [`docs/demo/demo-recording.mp4`](docs/demo/demo-recording.mp4)
+> 更多截图与录制清单见 [`docs/demo/README.md`](docs/demo/README.md)
 
 ---
 
