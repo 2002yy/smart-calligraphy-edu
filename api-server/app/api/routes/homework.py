@@ -67,7 +67,11 @@ def upload_homework(
     summary="Submit homework",
     description="Submit a homework record or finalize a previously uploaded homework item.",
 )
-def submit_homework(payload: HomeworkSubmitRequest, db: Session = Depends(get_db)):
+def submit_homework(payload: HomeworkSubmitRequest, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current_user["role"] == "student" and payload.student_id is not None and payload.student_id != current_user["id"]:
+        raise HTTPException(status_code=403, detail="学生只能提交自己的作业")
+    if current_user["role"] == "student" and payload.student_id is None:
+        payload.student_id = current_user["id"]
     data = HomeworkRead(**HomeworkService.submit_homework(db, payload))
     return APIResponse[HomeworkRead](data=data)
 
@@ -79,14 +83,16 @@ def submit_homework(payload: HomeworkSubmitRequest, db: Session = Depends(get_db
 )
 def list_homework(
     task_id: int | None = None,
-    student_id: int | None = None,
     status: str | None = None,
+    current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    student_id = current_user["id"] if current_user["role"] == "student" else None
     data = [
         HomeworkRead(**item)
         for item in HomeworkService.list_homework(db, task_id=task_id, student_id=student_id, status=status)
     ]
+    data = [HomeworkRead(**item) for item in HomeworkService.list_homework(db, task_id=task_id, student_id=student_id, status=status)]
     return APIResponse[list[HomeworkRead]](data=data)
 
 
@@ -95,6 +101,9 @@ def list_homework(
     response_model=APIResponse[HomeworkRead],
     summary="Get homework detail",
 )
-def get_homework(homework_id: int, db: Session = Depends(get_db)):
-    data = HomeworkRead(**HomeworkService.get_homework(db, homework_id))
+def get_homework(homework_id: int, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    hw = HomeworkService.get_homework(db, homework_id)
+    if current_user["role"] == "student" and current_user["id"] != hw["student_id"]:
+        raise HTTPException(status_code=403, detail="学生只能查看自己的作业")
+    data = HomeworkRead(**hw)
     return APIResponse[HomeworkRead](data=data)

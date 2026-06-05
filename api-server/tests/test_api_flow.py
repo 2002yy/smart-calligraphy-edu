@@ -76,6 +76,8 @@ def _run_e2e():
         assert task_response.status_code == 200
         task_id = task_response.json()["data"]["id"]
 
+        _slogin = client.post("/api/v1/auth/login", json={"username": "student01", "password": "123456"})
+        _stok = _slogin.json()["data"]["access_token"]
         homework_response = client.post(
             "/api/v1/homework",
             json={
@@ -83,6 +85,7 @@ def _run_e2e():
                 "student_id": 2,
                 "image_url": "/uploads/homework/2/test-demo.png",
             },
+            headers={"Authorization": f"Bearer {_stok}"},
         )
         assert homework_response.status_code == 200
         homework_id = homework_response.json()["data"]["id"]
