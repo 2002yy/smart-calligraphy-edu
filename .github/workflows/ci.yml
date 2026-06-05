@@ -48,6 +48,26 @@ jobs:
       - name: Test
         run: npm test
 
+  playwright-e2e:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: playwright-smoke
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: playwright-smoke/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+      - name: Run smoke tests
+        run: node smoke.js
+
   student-app:
     runs-on: ubuntu-latest
     defaults:
@@ -67,3 +87,23 @@ jobs:
         run: npm run build
       - name: Test
         run: npm test
+
+  playwright-e2e:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: playwright-smoke
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: playwright-smoke/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+      - name: Run smoke tests
+        run: node smoke.js

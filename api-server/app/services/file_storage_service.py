@@ -184,7 +184,7 @@ class FileStorageService:
             parts = [
                 f"结构 {scores.get('structure_score', 0)}",
                 f"重心 {scores.get('center_score', 0)}",
-                f"笔顺 {scores.get('stroke_order_score', 0)}",
+                f"笔法 {scores.get('stroke_order_score', 0)}",
             ]
             x = 16 + tw + 50
             for part in parts:

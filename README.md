@@ -1,5 +1,7 @@
 # 智慧书法教学系统 — Smart Calligraphy Education
 
+[![CI](https://github.com/2002yy/smart-calligraphy-edu/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/2002yy/smart-calligraphy-edu/actions/workflows/ci.yml)
+
 > **书法教育 AI 评测系统** — 基于 AI 视觉评测的书法教学平台
 > 本人为唯一贡献者（全栈开发），涵盖后端架构、AI 评测集成与前后端对接。
 
@@ -125,7 +127,27 @@ npm run dev
 
 ---
 
-## 7. 🗄️ Database Migration
+## 7. 🔐 Permission Matrix
+
+| 资源 | Student | Teacher | Public |
+|------|---------|---------|--------|
+| homework upload | ✅ 自己的 | ❌ | — |
+| homework submit | ✅ 自己的 | ❌ | — |
+| homework list/detail | ✅ 自己的 | ✅ 自己课程下 | — |
+| evaluation start/get | ✅ 自己的 | ✅ 自己课程下 | — |
+| review list/submit | ❌ | ✅  从 token | — |
+| course create | ❌ | ✅  从 token | — |
+| class create/join | ✅ join(自己的) | ✅ create(归属校验) | — |
+| class members | ❌ | ✅ 归属校验 | — |
+| report student | ✅ 自己的 | ✅ | — |
+| report class | ❌ | ✅  | — |
+| user/growth | ✅ 自己的 | ✅ 班级关系校验 | — |
+| static resources | — | — | ✅ 签名 token path 绑定 |
+|  | — | — | ✅ 公开 |
+
+---
+
+## 8. 🗄️ Database Migration
 
 Use Alembic for schema migration. Auto-runs on dev startup; manual for production.
 
@@ -143,31 +165,31 @@ Config in `alembic.ini` + `alembic/env.py` (auto-imports all models).
 
 ---
 
-## 7. 🧪 Testing / Quality
+## 9. 🧪 Testing / Quality
 
 | 类型 | 覆盖范围 | 用例数 | 状态 |
 |------|---------|--------|------|
-| **pytest**（后端） | 登录认证、Mock 评测、provider 选择、分数范围、思考链 | **29** | ✅ |
-| **Vitest**（前端 store） | 学生登录/登出、选班级、选任务、提交作业、评测、文件选择 | **15** | ✅ |
-| **Playwright**（E2E） | API 冒烟 → 上传 → Mock 评测 → 看板回流 → UI 截图 | **全链路** | ✅ 本地可用，待接入 CI |
+| **pytest**（后端） | 登录认证、Mock 评测、provider 选择、分数范围、思考链 | **30** | ✅ |
+| **Vitest**（前端 store） | 登录/登出、班级、任务、提交、评测、文件选择 | **15** | ✅ |
+| **Playwright**（E2E） | API 冒烟 → 上传 → Mock 评测 → 看板回流 → UI 截图 | **全链路** | ✅ 本地可用，✅ CI 已接入 |
 | API 文档 | FastAPI `/docs` 自动生成 | — | ✅ |
 | Mock Evaluator | 无 API Key 时本地演示 | — | ✅ |
 
 ---
 
-## 8. 🛡️ Public Version Boundary
+## 10. 🛡️ Public Version Boundary
 
 | 项目 | 说明 |
 |------|------|
 | **API Key** | 不提交真实 API Key（`.env` 已 gitignored） |
-| **AI 评测** | 默认使用 Mock 评分，无需 API Key 即可演示 |
-| **测试图片** | 仅用于本地演示，不公开暴露 |
+| **AI 评测** | 默认 Mock 评分，无需 Key 可演示 |
+| **测试图片** | 仅本地演示，不公开暴露 |
 | **外网部署** | 必须开启 `SECURE_STATIC=true` 和配置 `CORS_ORIGINS` 白名单 |
-| **作品图片** | 上传路径不应公开暴露，建议配置鉴权 |
+| **作品图片** | 签名 token 验证 + path 绑定 |
 
 ---
 
-## 9. 📄 Portfolio Notes
+## 11. 📄 Portfolio Notes
 
 ### 作品集说明
 
