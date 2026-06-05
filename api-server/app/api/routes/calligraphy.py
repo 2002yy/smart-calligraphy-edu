@@ -11,6 +11,21 @@ from fastapi import APIRouter, HTTPException, Query
 from app.schemas.common import APIResponse
 from pydantic import BaseModel
 
+ALLOWED_PATH_PREFIXES = ("/uploads/", "/storage/calligraphy_db/")
+FORBIDDEN_PATTERNS = ("..", "\\", "//", "~")
+
+
+def _validate_sign_path(path: str) -> str:
+    """校验签名路径：禁止 ..、反斜杠、绝对路径、外部 URL、不合法前缀"""
+    if not path.startswith("/"):
+        raise HTTPException(status_code=400, detail="路径必须以 / 开头")
+    if any(p in path for p in FORBIDDEN_PATTERNS):
+        raise HTTPException(status_code=400, detail="路径包含非法字符")
+    if not path.startswith(ALLOWED_PATH_PREFIXES):
+        raise HTTPException(status_code=400, detail=f"仅支持 {'、'.join(ALLOWED_PATH_PREFIXES)} 路径")
+    return path
+
+
 router = APIRouter()
 
 
@@ -27,6 +42,7 @@ class CalligraphyMatch(BaseModel):
 def sign_image(
     path: str = Query(..., description="图片路径，如 /uploads/homework/2/1/xxx.jpg"),
 ):
+    path = _validate_sign_path(path)
     from app.services.token_service import sign_image_path
     token = sign_image_path(path)
     return APIResponse(data={"signed_url": f"{path}?token={token}"})
