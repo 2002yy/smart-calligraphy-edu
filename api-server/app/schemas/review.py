@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, computed_field
 
 
 class ReviewCreate(BaseModel):
@@ -37,11 +37,20 @@ class ReviewRead(BaseModel):
     comment: str | None = None
     final_score: float | None = None
     score: float | None = None
+    structure_score: float | None = None
+    center_score: float | None = None
+    stroke_order_score: float | None = None
     tags: list[str] = []
     advice: str | None = None
     compare_image_url: str | None = None
+    thinking_steps: list[dict] | None = None
     status: str
     reviewed_at: datetime | None = None
+
+    @computed_field
+    @property
+    def stroke_quality_score(self) -> float | None:
+        return self.stroke_order_score
 
     model_config = ConfigDict(
         json_schema_extra={

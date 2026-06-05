@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import Enum
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, computed_field
 
 
 class EvaluationProvider(str, Enum):
@@ -19,6 +19,12 @@ class EvaluationRead(BaseModel):
     structure_score: float
     center_score: float
     stroke_order_score: float
+
+    @computed_field
+    @property
+    def stroke_quality_score(self) -> float:
+        return self.stroke_order_score
+
     tags: list[str]
     issues: list[str]
     advice: str | None = None

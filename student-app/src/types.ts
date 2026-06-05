@@ -65,6 +65,7 @@ export interface Evaluation {
   structure_score: number;
   center_score: number;
   stroke_order_score: number;
+  stroke_quality_score?: number;
   tags: string[];
   issues: string[];
   advice?: string | null;

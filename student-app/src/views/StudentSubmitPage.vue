@@ -429,7 +429,7 @@ function handleFileChange(event: Event) {
               <ScoreRing :score="evaluation.center_score" label="重心" :delay="240" />
             </article>
             <article class="score-card">
-              <ScoreRing :score="evaluation.stroke_order_score" label="笔画" :delay="360" />
+              <ScoreRing :score="evaluation.stroke_quality_score ?? evaluation.stroke_order_score" label="笔画" :delay="360" />
             </article>
           </div>
 
