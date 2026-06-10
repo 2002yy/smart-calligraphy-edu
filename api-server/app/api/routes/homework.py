@@ -80,15 +80,20 @@ def submit_homework(payload: HomeworkSubmitRequest, current_user: dict = Depends
     "",
     response_model=APIResponse[list[HomeworkRead]],
     summary="List homework",
+    description="支持按 task_id、status、tag 筛选。tag 参数按评测标签过滤（如 ?tag=中宫松散）。",
 )
 def list_homework(
     task_id: int | None = None,
     status: str | None = None,
+    tag: str | None = None,
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     student_id = current_user["id"] if current_user["role"] == "student" else None
-    data = [HomeworkRead(**item) for item in HomeworkService.list_homework(db, task_id=task_id, student_id=student_id, status=status)]
+    data = [
+        HomeworkRead(**item)
+        for item in HomeworkService.list_homework(db, task_id=task_id, student_id=student_id, status=status, tag=tag)
+    ]
     return APIResponse[list[HomeworkRead]](data=data)
 
 

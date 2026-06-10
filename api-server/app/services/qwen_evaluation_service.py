@@ -23,6 +23,7 @@ from fastapi import HTTPException
 from pydantic import BaseModel, Field
 
 from app.core.config import settings
+from app.core.evaluation_tags import ALLOWED_TAGS
 
 try:
     from PIL import Image
@@ -31,82 +32,8 @@ except ImportError:  # pragma: no cover
 
 logger = logging.getLogger(__name__)
 
-# 允许的标签白名单——Qwen 输出中的 tags 必须属于此集合
-# ⚠️ 如修改 Qwen prompt 中的标签列表，请同步更新此集合
+# ⚠️ 如修改 Qwen prompt 中的标签列表，请同步更新 evaluation_tags.py 中的 POSITIVE_TAGS / ISSUE_TAGS
 #    对应位置：本文件 score() 方法的 system prompt "【标签要求】" 段
-#
-# 设计原则：
-# 1. 模型能从单张静态图片判断
-# 2. 学生能理解，教师端能展示
-# 3. 数量适中，不扩散选择
-POSITIVE_TAGS: set[str] = {
-    "结构工整",
-    "结构稳定",
-    "重心稳当",
-    "重心居中",
-    "笔法到位",
-    "笔画有力",
-    "运笔流畅",
-    "起收笔清晰",
-    "主笔突出",
-    "收放自然",
-    "疏密得当",
-    "穿插合理",
-    "避让自然",
-    "大小协调",
-    "间距均匀",
-    "整体整洁",
-}
-
-ISSUE_TAGS: set[str] = {
-    # 结构 / 结体
-    "结构失衡",
-    "结构松散",
-    "中宫松散",
-    "中宫过紧",
-    "主笔不突出",
-    "比例失调",
-    "部件错位",
-    "部件拥挤",
-    "穿插不当",
-    "避让不足",
-    "收放失衡",
-    "字形歪斜",
-    # 重心
-    "重心不稳",
-    "重心偏左",
-    "重心偏右",
-    "重心偏上",
-    "重心偏下",
-    "左右失衡",
-    "上下失衡",
-    # 笔画 / 笔法
-    "笔法有误",
-    "运笔生硬",
-    "笔画无力",
-    "笔画过细",
-    "笔画过粗",
-    "粗细失衡",
-    "起笔草率",
-    "收笔草率",
-    "起收笔不清",
-    "横画不稳",
-    "竖画不直",
-    "撇捺角度不当",
-    "转折生硬",
-    # 布局 / 章法
-    "大小不一",
-    "间距不均",
-    "行列不齐",
-    "布局拥挤",
-    "留白不当",
-    # 呈现 / 图片质量
-    "墨迹不匀",
-    "页面不整洁",
-    "图像不清晰",
-}
-
-ALLOWED_TAGS: set[str] = POSITIVE_TAGS | ISSUE_TAGS
 
 
 class QwenAnnotation(BaseModel):

@@ -71,3 +71,66 @@ class ReportExportRead(BaseModel):
             }
         }
     )
+
+
+class TagTrendRecord(BaseModel):
+    """单次评测的标签记录。"""
+
+    homework_id: int
+    created_at: datetime
+    score: float
+    tags: list[str]
+
+
+class FrequentIssueTag(BaseModel):
+    """反复出现的问题标签统计。"""
+
+    tag: str
+    count: int
+
+
+class ImprovedTag(BaseModel):
+    """有改善趋势的标签。"""
+
+    tag: str
+    previous_count: int
+    recent_count: int
+
+
+class StudentTagTrendRead(BaseModel):
+    """学生端成长档案标签趋势。"""
+
+    student_id: int
+    records: list[TagTrendRecord]
+    frequent_issue_tags: list[FrequentIssueTag]
+    improved_tags: list[ImprovedTag]
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "student_id": 2,
+                "records": [
+                    {
+                        "homework_id": 11,
+                        "created_at": "2026-06-10T20:10:00",
+                        "score": 7.2,
+                        "tags": ["中宫松散", "重心偏左"],
+                    },
+                    {
+                        "homework_id": 12,
+                        "created_at": "2026-06-12T18:30:00",
+                        "score": 8.1,
+                        "tags": ["重心居中", "运笔流畅"],
+                    },
+                ],
+                "frequent_issue_tags": [
+                    {"tag": "中宫松散", "count": 4},
+                    {"tag": "运笔生硬", "count": 3},
+                ],
+                "improved_tags": [
+                    {"tag": "重心偏左", "previous_count": 3, "recent_count": 1},
+                    {"tag": "运笔生硬", "previous_count": 2, "recent_count": 0},
+                ],
+            }
+        }
+    )

@@ -123,6 +123,29 @@ def _run_e2e():
         dashboard_data = dashboard_response.json()["data"]
         assert dashboard_data["class_id"] == class_id
         assert dashboard_data["task_count"] >= 1
+        # 验证新字段：标签统计
+        assert "tag_stats" in dashboard_data
+        assert "top_issue_tags" in dashboard_data
+        assert "top_positive_tags" in dashboard_data
+        assert isinstance(dashboard_data["tag_stats"], list)
+        if dashboard_data["tag_stats"]:
+            first = dashboard_data["tag_stats"][0]
+            assert "tag" in first and "category" in first and "count" in first and "ratio" in first
+
+        # 验证 homework tag 过滤
+        tag_filter_response = client.get(f"/api/v1/homework?tag=结构工整", headers={"Authorization": f"Bearer {token}"})
+        assert tag_filter_response.status_code == 200
+        assert isinstance(tag_filter_response.json()["data"], list)
+
+        # 验证 tag-trend 端点
+        trend_response = client.get(f"/api/v1/reports/student/2/tag-trend", headers={"Authorization": f"Bearer {_stok}"})
+        assert trend_response.status_code == 200
+        trend_data = trend_response.json()["data"]
+        assert trend_data["student_id"] == 2
+        assert "records" in trend_data
+        assert "frequent_issue_tags" in trend_data
+        assert "improved_tags" in trend_data
+        assert isinstance(trend_data["records"], list)
 
         report_response = client.get(f"/api/v1/reports/class/{class_id}", headers={"Authorization": f"Bearer {token}"})
         assert report_response.status_code == 200

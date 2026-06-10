@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from app.repositories import HomeworkRepository, TaskRepository, UserRepository
+from app.repositories import EvaluationRepository, HomeworkRepository, TaskRepository, UserRepository
 from app.schemas.homework import HomeworkSubmitRequest
 from app.services.file_storage_service import FileStorageService
 
@@ -81,8 +81,18 @@ class HomeworkService:
         task_id: int | None = None,
         student_id: int | None = None,
         status: str | None = None,
+        tag: str | None = None,
     ) -> list[dict]:
         items = HomeworkRepository.list_homework(db, task_id=task_id, student_id=student_id, status=status)
+
+        # 按评测标签过滤
+        if tag:
+            homework_ids = [item.id for item in items]
+            evaluations = EvaluationRepository.list_by_homework_ids(db, homework_ids)
+            # 只保留包含指定标签的 homework
+            matching_ids = {ev.homework_id for ev in evaluations if ev.issues_json and tag in ev.issues_json}
+            items = [item for item in items if item.id in matching_ids]
+
         return [HomeworkService._serialize(item) for item in items]
 
     @staticmethod

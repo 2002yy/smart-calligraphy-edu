@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
+from app.core.evaluation_tags import ISSUE_TAGS, POSITIVE_TAGS, TAG_CATEGORIES
 from app.repositories import ClassMemberRepository, ClassroomRepository, EvaluationRepository, HomeworkRepository, TaskRepository
 
 
@@ -25,10 +26,35 @@ class DashboardService:
         expected_homework = len(members) * len(tasks)
         submit_rate = round(len(homework_list) / expected_homework, 2) if expected_homework else 0.0
 
+        # 共性问题（按频次降序取前5）
         issue_pool: list[str] = []
         for item in scored:
             issue_pool.extend(item.issues_json or [])
         top_issues = sorted(set(issue_pool), key=lambda issue: issue_pool.count(issue), reverse=True)[:5]
+
+        # ---- 标签统计 ----
+        tag_counter: dict[str, int] = {}
+        for item in scored:
+            for tag in (item.issues_json or []):
+                tag_counter[tag] = tag_counter.get(tag, 0) + 1
+
+        total_evaluated = len(scored) or 1  # avoid division by zero
+        tag_stats = [
+            {
+                "tag": tag,
+                "category": TAG_CATEGORIES.get(tag, "other"),
+                "count": count,
+                "ratio": round(count / total_evaluated, 2),
+            }
+            for tag, count in sorted(tag_counter.items(), key=lambda x: -x[1])
+        ]
+
+        # 按正向 / 问题分组
+        issue_tag_stats = [t for t in tag_stats if t["tag"] in ISSUE_TAGS]
+        positive_tag_stats = [t for t in tag_stats if t["tag"] in POSITIVE_TAGS]
+
+        top_issue_tags = [t["tag"] for t in issue_tag_stats[:5]]
+        top_positive_tags = [t["tag"] for t in positive_tag_stats[:3]]
 
         return {
             "class_id": classroom.id,
@@ -40,4 +66,7 @@ class DashboardService:
             "avg_score": avg_score,
             "submit_rate": submit_rate,
             "top_issues": top_issues,
+            "tag_stats": tag_stats,
+            "top_issue_tags": top_issue_tags,
+            "top_positive_tags": top_positive_tags,
         }
