@@ -74,6 +74,13 @@ export interface Review {
   reviewed_at?: string | null;
 }
 
+export interface TagStatItem {
+  tag: string;
+  category: string;
+  count: number;
+  ratio: number;
+}
+
 export interface DashboardData {
   class_id: number;
   class_name: string;
@@ -84,6 +91,9 @@ export interface DashboardData {
   avg_score: number;
   submit_rate: number;
   top_issues: string[];
+  tag_stats: TagStatItem[];
+  top_issue_tags: string[];
+  top_positive_tags: string[];
 }
 
 export interface ClassReport {

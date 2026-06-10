@@ -8,6 +8,7 @@ import type {
   Evaluation,
   Growth,
   Homework,
+  StudentTagTrend,
   StudentTask,
   TaskSubmitForm
 } from "../types";
@@ -34,6 +35,7 @@ export const useStudentStore = defineStore("student", () => {
   const selectedClassId = ref<number | null>(null);
   const selectedTaskId = ref<number | null>(null);
   const growth = ref<Growth | null>(null);
+  const tagTrend = ref<StudentTagTrend | null>(null);
   const latestHomework = ref<Homework | null>(null);
   const evaluation = ref<Evaluation | null>(null);
   const selectedFile = ref<File | null>(null);
@@ -118,6 +120,7 @@ export const useStudentStore = defineStore("student", () => {
         selectedTaskId.value = null;
       }
       growth.value = await studentApi.getGrowth(user.value.id);
+      tagTrend.value = await studentApi.getTagTrend(user.value.id);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "学生端数据加载失败，请稍后重试。", "error");
     }
@@ -196,6 +199,7 @@ export const useStudentStore = defineStore("student", () => {
       evaluation.value = null;
       submitStage.value = "uploaded";
       growth.value = await studentApi.getGrowth(user.value.id);
+      tagTrend.value = await studentApi.getTagTrend(user.value.id);
       setNotice("作业提交成功，可以继续发起 AI 评测。", "success");
       return latestHomework.value;
     } catch (error) {
@@ -224,6 +228,7 @@ export const useStudentStore = defineStore("student", () => {
       await studentApi.startEvaluation(latestHomework.value.id, provider, true);
       evaluation.value = await waitEvaluationFinished(latestHomework.value.id);
       growth.value = await studentApi.getGrowth(user.value.id);
+      tagTrend.value = await studentApi.getTagTrend(user.value.id);
       if (provider === "openai") {
         setNotice("OpenAI 评分完成，结果卡片已更新。（旧版）", "success");
       } else if (provider === "qwen") {
@@ -302,6 +307,7 @@ export const useStudentStore = defineStore("student", () => {
     selectedClassId.value = null;
     selectedTaskId.value = null;
     growth.value = null;
+    tagTrend.value = null;
     latestHomework.value = null;
     evaluation.value = null;
     selectedFile.value = null;
@@ -329,6 +335,7 @@ export const useStudentStore = defineStore("student", () => {
     selectedClassId,
     selectedTaskId,
     growth,
+    tagTrend,
     latestHomework,
     evaluation,
     selectedFile,

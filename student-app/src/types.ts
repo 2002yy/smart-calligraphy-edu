@@ -95,3 +95,28 @@ export interface TaskSubmitForm {
   imageUrl: string;
   selectedFileName?: string;
 }
+
+export interface TagTrendRecord {
+  homework_id: number;
+  created_at: string;
+  score: number;
+  tags: string[];
+}
+
+export interface FrequentIssueTag {
+  tag: string;
+  count: number;
+}
+
+export interface ImprovedTag {
+  tag: string;
+  previous_count: number;
+  recent_count: number;
+}
+
+export interface StudentTagTrend {
+  student_id: number;
+  records: TagTrendRecord[];
+  frequent_issue_tags: FrequentIssueTag[];
+  improved_tags: ImprovedTag[];
+}

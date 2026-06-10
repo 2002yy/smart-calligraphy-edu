@@ -18,7 +18,11 @@ class DashboardService:
         evaluations = EvaluationRepository.list_by_homework_ids(db, [item.id for item in homework_list])
 
         evaluation_map = {item.homework_id: item for item in evaluations}
-        scored = [evaluation_map[item.id] for item in homework_list if item.id in evaluation_map]
+        scored = [
+            evaluation_map[item.id]
+            for item in homework_list
+            if item.id in evaluation_map and evaluation_map[item.id].status == "finished"
+        ]
         score_values = [item.total_score for item in scored]
         avg_score = round(sum(score_values) / len(score_values), 2) if score_values else 0.0
 

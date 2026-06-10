@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import { useRouter } from "vue-router";
 import AnimatedCount from "../../components/AnimatedCount.vue";
 import AppSkeleton from "../../components/AppSkeleton.vue";
 import CollapsibleIntro from "../../components/CollapsibleIntro.vue";
 import PageState from "../../components/PageState.vue";
 import type { ClassReport, DashboardData } from "../../types";
+
+const router = useRouter();
 
 defineProps<{
   dashboard: DashboardData | null;
@@ -11,6 +14,10 @@ defineProps<{
   activeClassName: string;
   loading: boolean;
 }>();
+
+function navigateToReviews(tag: string) {
+  router.push({ path: "/reviews", query: { tag } });
+}
 </script>
 
 <template>
@@ -99,6 +106,36 @@ defineProps<{
               <li v-for="issue in dashboard.top_issues" :key="issue">{{ issue }}</li>
             </ul>
             <p v-else class="muted-copy">当前暂无稳定的共性问题标签。</p>
+          </div>
+
+          <div class="subsection" v-if="dashboard.top_issue_tags?.length">
+            <strong>常见问题标签 Top {{ Math.min(dashboard.top_issue_tags.length, 8) }}</strong>
+            <div class="tag-chip-group">
+              <button
+                v-for="tag in dashboard.top_issue_tags.slice(0, 8)"
+                :key="tag"
+                class="tag-chip issue"
+                @click="navigateToReviews(tag)"
+                :title="`筛选「${tag}」的作业`"
+              >
+                {{ tag }}
+              </button>
+            </div>
+          </div>
+
+          <div class="subsection" v-if="dashboard.top_positive_tags?.length">
+            <strong>优秀表现标签 Top {{ Math.min(dashboard.top_positive_tags.length, 5) }}</strong>
+            <div class="tag-chip-group">
+              <button
+                v-for="tag in dashboard.top_positive_tags.slice(0, 5)"
+                :key="tag"
+                class="tag-chip positive"
+                @click="navigateToReviews(tag)"
+                :title="`筛选「${tag}」的作业`"
+              >
+                {{ tag }}
+              </button>
+            </div>
           </div>
 
           <div class="subsection">
@@ -196,6 +233,38 @@ defineProps<{
   margin: 0;
   color: var(--muted);
   line-height: 1.8;
+}
+
+.tag-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag-chip {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-size: 13px;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.tag-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+}
+
+.tag-chip.issue {
+  background: rgba(220, 80, 60, 0.08);
+  color: #b84a38;
+  border-color: rgba(220, 80, 60, 0.2);
+}
+
+.tag-chip.positive {
+  background: rgba(60, 160, 80, 0.08);
+  color: #2e7d46;
+  border-color: rgba(60, 160, 80, 0.2);
 }
 
 @media (max-width: 1280px) {

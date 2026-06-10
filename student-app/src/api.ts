@@ -6,6 +6,7 @@ import type {
   Homework,
   HomeworkUploadResult,
   LoginResponse,
+  StudentTagTrend,
   StudentTask
 } from "./types";
 
@@ -72,5 +73,8 @@ export const studentApi = {
   },
   getEvaluationProviders() {
     return request.get<never, Record<string, {enabled: boolean; configured?: boolean; deprecated?: boolean}>>("/api/v1/evaluation/providers");
+  },
+  getTagTrend(studentId: number) {
+    return request.get<never, StudentTagTrend>(`/api/v1/reports/student/${studentId}/tag-trend`);
   }
 };
