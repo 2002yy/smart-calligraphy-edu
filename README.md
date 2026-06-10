@@ -3,16 +3,6 @@
 [![CI](https://github.com/2002yy/smart-calligraphy-edu/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/2002yy/smart-calligraphy-edu/actions/workflows/ci.yml)
 
 > **书法教育 AI 评测系统** — 基于 AI 视觉评测的书法教学平台
-> 本人为唯一贡献者（全栈开发），涵盖后端架构、AI 评测集成与前后端对接。
-
-> Portfolio Note:
-> This is a public course/project demo for AI-powered education software.
-> It demonstrates Vue3 dual frontend, FastAPI backend, SQLAlchemy data layer, AI vision scoring and mock fallback.
-> It is not a production education platform.
->
-> 作品集说明：
-> 本仓库是智慧教育方向的公开课程/项目演示版，用于展示 Vue3 双端前端、FastAPI 后端、SQLAlchemy 数据层、AI 视觉评测和 Mock fallback。
-> 当前不是生产级教学平台。
 
 ---
 
@@ -207,19 +197,6 @@ Config in `alembic.ini` + `alembic/env.py` (auto-imports all models).
 | **作品图片** | 签名 token 验证 + path 绑定 |
 
 ---
-
-## 11. 📄 Portfolio Notes
-
-### 作品集说明
-
-本仓库是 AI 教育方向的公开项目演示，重点展示：
-
-| 能力维度 | 体现 |
-|---------|------|
-| **Vue 3 双端前端** | 教师端 + 学生端独立 SPA，共享组件库 |
-| **FastAPI 后端** | 异步 API、SQLAlchemy ORM、Pydantic 校验 |
-| **AI 视觉评测集成** | 大模型 API 调用 + Mock 回退模式 |
-| **全栈对接** | 前后端联调、API 文档、环境配置 |
 
 ### License
 
