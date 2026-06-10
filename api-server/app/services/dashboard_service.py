@@ -30,10 +30,10 @@ class DashboardService:
         expected_homework = len(members) * len(tasks)
         submit_rate = round(len(homework_list) / expected_homework, 2) if expected_homework else 0.0
 
-        # 共性问题（按频次降序取前5）
+        # 共性问题（按频次降序取前5，只统计白名单内的标签）
         issue_pool: list[str] = []
         for item in scored:
-            issue_pool.extend(item.issues_json or [])
+            issue_pool.extend(tag for tag in (item.issues_json or []) if tag in ALLOWED_TAGS)
         top_issues = sorted(set(issue_pool), key=lambda issue: issue_pool.count(issue), reverse=True)[:5]
 
         # ---- 标签统计（只统计白名单内的标签）----

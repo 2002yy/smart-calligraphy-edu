@@ -190,6 +190,11 @@ class TestTagDashboardAccuracy:
                 assert s["tag"] in ALLOWED_TAGS, \
                     f"标签 '{s['tag']}' 不在 ALLOWED_TAGS 中"
 
+            # top_issues 也应已过滤非白名单标签
+            for issue in data["top_issues"]:
+                assert issue in ALLOWED_TAGS, \
+                    f"top_issues 出现非白名单标签: {issue}"
+
     # ── 场景 4 ──
 
     def test_dashboard_requires_auth(self):

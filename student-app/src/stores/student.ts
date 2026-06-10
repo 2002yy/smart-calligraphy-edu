@@ -264,6 +264,7 @@ export const useStudentStore = defineStore("student", () => {
       submitStage.value = "waiting";
       evaluation.value = await waitEvaluationFinished(homework.id);
       growth.value = await studentApi.getGrowth(user.value!.id);
+      tagTrend.value = await studentApi.getTagTrend(user.value!.id);
       submitStage.value = "finished";
       setNotice(provider === "qwen" ? "AI 评分已完成" : "AI 评测完成，结果卡片已更新。", "success");
     } catch (error) {

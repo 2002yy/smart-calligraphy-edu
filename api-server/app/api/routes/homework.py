@@ -11,7 +11,6 @@ from app.repositories import TaskRepository
 from app.services import HomeworkService
 from app.services.auth_service import get_current_user
 from app.services.permission_service import assert_owns_class, assert_owns_homework, assert_student
-from app.repositories import TaskRepository
 
 try:
     from PIL import Image
