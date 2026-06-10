@@ -32,6 +32,8 @@ except ImportError:  # pragma: no cover
 logger = logging.getLogger(__name__)
 
 # 允许的标签白名单——Qwen 输出中的 tags 必须属于此集合
+# ⚠️ 如修改 Qwen prompt 中的标签列表，请同步更新此集合
+#    对应位置：本文件 score() 方法的 system prompt "【标签要求】" 段
 ALLOWED_TAGS: set[str] = {
     # 正向
     "结构工整", "重心稳当", "笔法到位", "主笔突出", "疏密得当",

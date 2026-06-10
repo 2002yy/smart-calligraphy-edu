@@ -99,6 +99,18 @@ student-app (5174) ──┘       │
 
 ---
 
+## 💡 Why This Project Matters
+
+| 维度 | 说明 |
+|------|------|
+| **双端角色系统** | 教师端与学生端独立 SPA，体现真实教育业务流程 |
+| **AI 评测可降级** | Qwen provider + Mock fallback，保证演示稳定，无需 API Key |
+| **权限边界** | 学生只能访问自己的作业，教师只能访问自己课程下的数据 |
+| **工程质量** | pytest(94) + Vitest(15) + Playwright E2E + GitHub Actions CI |
+| **安全意识** | 生产环境 JWT_SECRET 检查、静态资源签名访问、路径穿越防护 |
+
+---
+
 ## 6. 🚀 Quick Start
 
 ### ✅ 启动前检查清单
