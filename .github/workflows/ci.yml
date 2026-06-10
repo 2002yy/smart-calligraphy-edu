@@ -50,23 +50,86 @@ jobs:
 
   playwright-e2e:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: playwright-smoke
+    needs: [backend, teacher-web, student-app]
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: api-server/requirements.txt
+
+      - name: Install Python deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r api-server/requirements.txt
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: "npm"
           cache-dependency-path: playwright-smoke/package-lock.json
-      - name: Install dependencies
-        run: npm ci
-      - name: Install Playwright browsers
-        run: npx playwright install chromium --with-deps
+
+      - name: Install frontend deps
+        run: |
+          npm ci --prefix teacher-web
+          npm ci --prefix student-app
+
+      - name: Install Playwright deps
+        run: |
+          npm ci --prefix playwright-smoke
+          npx playwright install chromium --with-deps
+
+      - name: Build frontends
+        run: |
+          npm run build --prefix teacher-web
+          npm run build --prefix student-app
+
+      - name: Start backend
+        run: |
+          cp api-server/.env.example api-server/.env
+          uvicorn app.main:app --host 127.0.0.1 --port 8000 &
+          echo "PID_API=$!" >> $GITHUB_ENV
+
+      - name: Start teacher-web preview
+        run: |
+          npx vite preview --port 5173 --strictPort &
+          echo "PID_TEACHER=$!" >> $GITHUB_ENV
+        working-directory: teacher-web
+
+      - name: Start student-app preview
+        run: |
+          npx vite preview --port 5174 --strictPort &
+          echo "PID_STUDENT=$!" >> $GITHUB_ENV
+        working-directory: student-app
+
+      - name: Wait for services
+        run: |
+          for i in $(seq 1 30); do
+            api_ok=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8000/ 2>/dev/null || echo "000")
+            teacher_ok=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5173/ 2>/dev/null || echo "000")
+            student_ok=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5174/ 2>/dev/null || echo "000")
+            echo "poll $i: api=$api_ok teacher=$teacher_ok student=$student_ok"
+            if [ "$api_ok" = "200" ] && [ "$teacher_ok" != "000" ] && [ "$student_ok" != "000" ]; then
+              echo "All services ready"
+              break
+            fi
+            sleep 2
+          done
+
       - name: Run smoke tests
         run: node smoke.js
+        working-directory: playwright-smoke
+
+      - name: Kill background services
+        if: always()
+        run: |
+          kill ${{ env.PID_API }} 2>/dev/null || true
+          kill ${{ env.PID_TEACHER }} 2>/dev/null || true
+          kill ${{ env.PID_STUDENT }} 2>/dev/null || true
 
   student-app:
     runs-on: ubuntu-latest

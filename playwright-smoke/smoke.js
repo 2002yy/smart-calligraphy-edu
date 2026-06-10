@@ -58,11 +58,14 @@ async function main() {
 
       // 上传 + 提交 + Mock 评测
       if (taskId) {
-        const png = Buffer.from([
-          137,80,78,71,13,10,26,10,0,0,0,13,73,72,68,82,0,0,0,1,0,0,0,1,
-          8,2,0,0,0,144,119,83,222,0,0,0,12,73,68,65,84,8,215,99,248,207,
-          192,0,0,0,2,0,1,226,0,0,0,63,0,0,0,0,0,0,0,
-        ]);
+        const samplePath = path.join(__dirname, "assets", "calligraphy_sample.jpg");
+        const img = fs.existsSync(samplePath)
+          ? fs.readFileSync(samplePath)
+          : Buffer.from([
+              137,80,78,71,13,10,26,10,0,0,0,13,73,72,68,82,0,0,0,1,0,0,0,1,
+              8,2,0,0,0,144,119,83,222,0,0,0,12,73,68,65,84,8,215,99,248,207,
+              192,0,0,0,2,0,1,226,0,0,0,63,0,0,0,0,0,0,0,
+            ]);
 
         const upload = await fetch(`${API}/api/v1/homework/upload`, {
           method: "POST",
@@ -71,7 +74,7 @@ async function main() {
             const fd = new FormData();
             fd.append("task_id", String(taskId));
             fd.append("student_id", String(sid));
-            fd.append("file", new Blob([png], { type: "image/png" }), "test.png");
+            fd.append("file", new Blob([img], { type: "image/jpeg" }), "calligraphy_sample.jpg");
             return fd;
           })(),
         }).then(r => r.json()).then(d => d.data);
