@@ -42,7 +42,7 @@ class TestBuildMockResult:
         """总分较高的作业应获得肯定性标签（Mock演示用，最低也有8分以上）。"""
         result = EvaluationService._build_mock_result(1, seeded_task)
         # homework_id=1 总分约 8.5，属于高分档
-        assert any(tag in result["issues"] for tag in ["结构工整", "重心稳当", "结构基本正确"])
+        assert any(tag in result["issues"] for tag in ["结构工整", "重心稳当", "笔法到位"])
 
     def test_high_score_produces_positive_tags(self, db_session, seeded_task):
         """homework_id % 10 == 0 时分数最高，标签应为肯定性。"""

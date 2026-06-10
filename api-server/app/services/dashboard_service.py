@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.evaluation_tags import ISSUE_TAGS, POSITIVE_TAGS, TAG_CATEGORIES
+from app.core.evaluation_tags import ALLOWED_TAGS, ISSUE_TAGS, POSITIVE_TAGS, TAG_CATEGORIES
 from app.repositories import ClassMemberRepository, ClassroomRepository, EvaluationRepository, HomeworkRepository, TaskRepository
 
 
@@ -32,10 +32,12 @@ class DashboardService:
             issue_pool.extend(item.issues_json or [])
         top_issues = sorted(set(issue_pool), key=lambda issue: issue_pool.count(issue), reverse=True)[:5]
 
-        # ---- 标签统计 ----
+        # ---- 标签统计（只统计白名单内的标签）----
         tag_counter: dict[str, int] = {}
         for item in scored:
             for tag in (item.issues_json or []):
+                if tag not in ALLOWED_TAGS:
+                    continue
                 tag_counter[tag] = tag_counter.get(tag, 0) + 1
 
         total_evaluated = len(scored) or 1  # avoid division by zero

@@ -82,8 +82,9 @@ class HomeworkService:
         student_id: int | None = None,
         status: str | None = None,
         tag: str | None = None,
+        task_ids: list[int] | None = None,
     ) -> list[dict]:
-        items = HomeworkRepository.list_homework(db, task_id=task_id, student_id=student_id, status=status)
+        items = HomeworkRepository.list_homework(db, task_id=task_id, student_id=student_id, status=status, task_ids=task_ids)
 
         # 按评测标签过滤
         if tag:

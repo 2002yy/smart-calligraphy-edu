@@ -118,7 +118,7 @@ def _run_e2e():
         assert review_response.status_code == 200
         assert review_response.json()["data"]["status"] == "reviewed"
 
-        dashboard_response = client.get(f"/api/v1/dashboard/class/{class_id}")
+        dashboard_response = client.get(f"/api/v1/dashboard/class/{class_id}", headers={"Authorization": f"Bearer {token}"})
         assert dashboard_response.status_code == 200
         dashboard_data = dashboard_response.json()["data"]
         assert dashboard_data["class_id"] == class_id
@@ -132,8 +132,11 @@ def _run_e2e():
             first = dashboard_data["tag_stats"][0]
             assert "tag" in first and "category" in first and "count" in first and "ratio" in first
 
-        # 验证 homework tag 过滤
-        tag_filter_response = client.get(f"/api/v1/homework?tag=结构工整", headers={"Authorization": f"Bearer {token}"})
+        # 验证 homework tag 过滤（教师必须传 class_id）
+        tag_filter_response = client.get(
+            f"/api/v1/homework?class_id={class_id}&tag=结构工整",
+            headers={"Authorization": f"Bearer {token}"},
+        )
         assert tag_filter_response.status_code == 200
         assert isinstance(tag_filter_response.json()["data"], list)
 
@@ -259,3 +262,7 @@ def _run_permission_tests():
         response = client.get("/api/v1/reports/class/1", headers={"Authorization": f"Bearer {ttoken}"})
         # 如果 class 1 属于 course 1 且 teacher_id=1，则通过
         assert response.status_code in (200, 404)
+
+        # 5. dashboard 无 token 返回 401，有 token 但非所属班级返回 403
+        response = client.get("/api/v1/dashboard/class/1")
+        assert response.status_code == 401

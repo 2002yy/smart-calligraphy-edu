@@ -7,9 +7,11 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.common import APIResponse
 from app.schemas.homework import HomeworkRead, HomeworkSubmitRequest, HomeworkUploadRead
+from app.repositories import TaskRepository
 from app.services import HomeworkService
 from app.services.auth_service import get_current_user
-from app.services.permission_service import assert_owns_homework, assert_student
+from app.services.permission_service import assert_owns_class, assert_owns_homework, assert_student
+from app.repositories import TaskRepository
 
 try:
     from PIL import Image
@@ -80,20 +82,34 @@ def submit_homework(payload: HomeworkSubmitRequest, current_user: dict = Depends
     "",
     response_model=APIResponse[list[HomeworkRead]],
     summary="List homework",
-    description="支持按 task_id、status、tag 筛选。tag 参数按评测标签过滤（如 ?tag=中宫松散）。",
+    description="支持按 class_id、task_id、status、tag 筛选。教师必须传 class_id 以限定班级范围。",
 )
 def list_homework(
+    class_id: int | None = None,
     task_id: int | None = None,
     status: str | None = None,
     tag: str | None = None,
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    student_id = current_user["id"] if current_user["role"] == "student" else None
-    data = [
-        HomeworkRead(**item)
-        for item in HomeworkService.list_homework(db, task_id=task_id, student_id=student_id, status=status, tag=tag)
-    ]
+    if current_user["role"] == "teacher":
+        # 教师必须指定班级
+        if class_id is None:
+            raise HTTPException(status_code=400, detail="teacher list homework requires class_id")
+        assert_owns_class(db, current_user, class_id)
+        tasks = TaskRepository.list_tasks(db, class_id=class_id)
+        task_ids = [t.id for t in tasks]
+        data = [
+            HomeworkRead(**item)
+            for item in HomeworkService.list_homework(db, task_ids=task_ids, task_id=task_id, status=status, tag=tag)
+        ]
+    else:
+        # 学生只能看自己的作业
+        student_id = current_user["id"]
+        data = [
+            HomeworkRead(**item)
+            for item in HomeworkService.list_homework(db, student_id=student_id, task_id=task_id, status=status, tag=tag)
+        ]
     return APIResponse[list[HomeworkRead]](data=data)
 
 
