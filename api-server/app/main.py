@@ -7,13 +7,14 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import auth, calligraphy, classes, courses, dashboard, evaluation, homework, reports, reviews, tasks, users
-from app.core.bootstrap import bootstrap_database
+from app.core.bootstrap import bootstrap_database, recover_stuck_evaluations
 from app.core.config import settings
 from app.services.token_service import sign_image_path, verify_signed_path, verify_token
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     bootstrap_database()
+    recover_stuck_evaluations()
     yield
 
 

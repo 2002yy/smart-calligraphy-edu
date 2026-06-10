@@ -82,24 +82,24 @@ class EvaluationService:
             tags = ["结构工整", "重心稳当", "笔法到位"]
             advice = "整体书写不错，结构稳定性和重心控制都比较好。注意主笔的舒展度和收放关系，多加练习让笔画更加流畅自然。"
         elif total_score >= 7.0:
-            tags = ["结构基本正确", "重心略偏", "笔顺有待加强"]
+            tags = ["结构基本正确", "重心略偏", "笔法有待加强"]
             advice = "结构大体正确，但中宫略松，重心控制还有一些不稳定的地方。建议重点练习中宫收紧，注意各笔画之间的呼应关系。"
         elif total_score >= 5.0:
             tags = ["中宫松散", "重心不稳", "运笔生硬"]
             advice = "整体结构偏松散，重心不稳的问题比较明显。建议先从基本笔画入手，练习横平竖直，再逐步过渡到单字结构训练。"
         else:
-            tags = ["结构失衡", "笔顺有误", "基础薄弱"]
-            advice = "基础笔画和结构都需要从头打基础。建议从基本点画开始练习，先掌握正确的笔顺规则，再练习简单字形。"
+            tags = ["结构失衡", "笔法有误", "基础薄弱"]
+            advice = "基础笔画和结构都需要从头打基础。建议从基本点画开始练习，先掌握正确的笔法规则，再练习简单字形。"
         structure_obs = ("中宫收紧，横细竖粗特征明显" if structure_score >= 9.0 else "结构基本正确，但中宫略松" if structure_score >= 8.5 else "整体结构松散")
         center_obs = ("整体重心平稳，起笔收笔位置准确" if center_score >= 9.0 else "重心略偏左约 2%" if center_score >= 8.5 else "重心明显偏左")
-        stroke_obs = ("笔顺正确，运笔流畅" if stroke_order_score >= 9.0 else "笔顺基本正确，个别笔画顺序可优化" if stroke_order_score >= 8.5 else "部分笔画顺序有误")
+        stroke_obs = ("笔法正确，运笔流畅" if stroke_order_score >= 9.0 else "笔法基本正确，个别笔画可优化" if stroke_order_score >= 8.5 else "部分笔法有误")
         thinking_steps = [
             {"step": 1, "title": "图像预处理", "detail": f"书法作业图像加载完成（作业 #{homework_id}）", "status": "done"},
             {"step": 2, "title": "文字区域检测", "detail": f"检测到 {3 + homework_id % 4} 个练习字区域", "status": "done"},
             {"step": 3, "title": "单字分割", "detail": "已完成", "status": "done"},
             {"step": 4, "title": "结构分析", "detail": structure_obs, "status": "done", "score": structure_score},
             {"step": 5, "title": "重心检测", "detail": center_obs, "status": "done", "score": center_score},
-            {"step": 6, "title": "笔顺验证", "detail": stroke_obs, "status": "done", "score": stroke_order_score},
+            {"step": 6, "title": "笔法分析", "detail": stroke_obs, "status": "done", "score": stroke_order_score},
             {"step": 7, "title": "综合评分", "detail": f"综合评分为 {total_score} 分", "status": "done", "score": total_score},
         ]
         return {"total_score": total_score, "structure_score": structure_score, "center_score": center_score, "stroke_order_score": stroke_order_score, "issues": tags, "advice_text": advice, "compare_image_url": image_url, "thinking_steps": thinking_steps}

@@ -1,6 +1,7 @@
 import hashlib  # fallback
-import bcrypt
+from datetime import UTC, datetime, timedelta
 
+import bcrypt
 from sqlalchemy import select
 
 import app.models  # noqa: F401
@@ -9,9 +10,35 @@ from app.core.database import SessionLocal, init_db
 from app.models.class_member import ClassMember
 from app.models.classroom import Classroom
 from app.models.course import Course
+from app.models.evaluation import Evaluation
 from app.models.task import Task
 from app.models.task_character import TaskCharacter
 from app.models.user import User
+
+
+def recover_stuck_evaluations():
+    """启动时将超过 30 分钟仍为 processing 的评测标记为 failed。
+
+    Qwen 异步线程在服务重启后会中断，卡住的 processing 记录会永远卡住。
+    此函数确保这些记录在下次启动时被清理。
+    """
+    db = SessionLocal()
+    try:
+        cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(minutes=30)
+        stuck = db.scalars(
+            select(Evaluation).where(
+                Evaluation.status == "processing",
+                Evaluation.updated_at < cutoff,
+            )
+        ).all()
+        for ev in stuck:
+            ev.status = "failed"
+            ev.advice_text = "评测因服务重启中断，请重新提交评测。"
+        if stuck:
+            db.commit()
+        # 不打印日志——pytest 抓取 stdout 可能误报
+    finally:
+        db.close()
 
 
 def _hash(password: str) -> str:

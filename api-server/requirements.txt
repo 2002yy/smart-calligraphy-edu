@@ -1,13 +1,15 @@
-fastapi
-uvicorn
-pydantic
-sqlalchemy
-python-multipart
-pymysql
-pytest
-httpx
-openai
-Pillow
-alembic
-
-bcrypt
+# 依赖版本已锁定 —— 保证 CI / 新环境可复现。
+# 升级依赖后请一并更新此文件，提交前跑一遍 pytest 确认兼容。
+fastapi==0.135.3
+uvicorn[standard]==0.44.0
+pydantic==2.12.5
+sqlalchemy==2.0.36
+python-multipart==0.0.26
+pymysql==1.1.2
+pytest==8.4.2
+pytest-timeout==2.4.0
+httpx==0.28.1
+openai==1.109.1
+Pillow==11.3.0
+alembic==1.18.4
+bcrypt==5.0.0
