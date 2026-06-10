@@ -143,11 +143,10 @@ class TestGetEvaluation:
             )
             assert "_result.jpg" in r
 
-            # 缺失字段标注：不应抛异常，fallback 返回原图 URL
+            # 缺失坐标字段：缺字段标注被跳过，overlay 继续生成，不抛异常
             r2 = FileStorageService.save_result_overlay(image_url=tmp_url, scores={"total_score": 8.5, "structure_score": 8.0, "center_score": 7.5, "stroke_order_score": 9.0}, tags=[], annotations=[{"x1": 10, "label": "missing"}])
             assert r2 is not None
-            # 因缺少坐标字段内部抛异常 fallback 回原图
-            assert r2 == tmp_url or "_result.jpg" in r2
+            assert "_result.jpg" in r2
 
             # 空标注
             r3 = FileStorageService.save_result_overlay(image_url=tmp_url, scores={"total_score": 8.5, "structure_score": 8.0, "center_score": 7.5, "stroke_order_score": 9.0}, tags=["结构工整"], annotations=[])
@@ -157,10 +156,58 @@ class TestGetEvaluation:
             r4 = FileStorageService.save_result_overlay(image_url=tmp_url, scores={"total_score": 5.0, "structure_score": 5.0, "center_score": 5.0, "stroke_order_score": 5.0}, tags=[], annotations=[{"x1": -10, "y1": -20, "x2": 200, "y2": 300, "label": "out", "severity": "minor"}])
             assert "_result.jpg" in r4
         finally:
-            if tmp_path.exists(): tmp_path.unlink()
+            if tmp_path.exists():
+                tmp_path.unlink()
             result_path = storage_root / f"{tmp_name.replace('.jpg','')}_result.jpg"
-            if result_path.exists(): result_path.unlink()
+            if result_path.exists():
+                result_path.unlink()
 
+
+class TestQwenEvaluationService:
+    """Qwen 评测服务的辅助函数（无需 API 调用）。"""
+
+    def test_extract_json_bare(self):
+        """裸 JSON 应原样返回。"""
+        raw = '{"total_score": 8.5}'
+        assert QwenEvaluationService._extract_json(raw) == raw
+
+    def test_extract_json_code_fence(self):
+        """```json 包裹的 JSON 应被剥离。"""
+        raw = "```json\n{\"total_score\": 8.5}\n```"
+        result = QwenEvaluationService._extract_json(raw)
+        assert result == '{"total_score": 8.5}'
+
+    def test_extract_json_triple_backtick_no_lang(self):
+        """只有 ``` 不带 json 标记也应工作。"""
+        raw = "```\n{\"total_score\": 7.0}\n```"
+        result = QwenEvaluationService._extract_json(raw)
+        assert result == '{"total_score": 7.0}'
+
+    def test_extract_json_with_prefix_text(self):
+        """JSON 前有额外文字应被剥离。"""
+        raw = '以下是 JSON：\n```json\n{"total_score": 9.0}\n```\n注意'
+        result = QwenEvaluationService._extract_json(raw)
+        assert '"total_score"' in result
+
+    def test_filter_tags_whitelist(self):
+        """只保留 ALLOWED_TAGS 内的标签。"""
+        tags = QwenEvaluationService._filter_tags(["结构工整", "重心稳当", "这个模型自己编的"])
+        assert "结构工整" in tags
+        assert "重心稳当" in tags
+        assert "这个模型自己编的" not in tags
+
+    def test_filter_tags_non_list(self):
+        """非列表输入应返回空列表。"""
+        assert QwenEvaluationService._filter_tags(None) == []
+        assert QwenEvaluationService._filter_tags("结构工整") == []
+        assert QwenEvaluationService._filter_tags({"tag": "结构工整"}) == []
+
+    def test_filter_tags_empty(self):
+        """空列表应返回空列表。"""
+        assert QwenEvaluationService._filter_tags([]) == []
+
+
+class TestGetEvaluationThinkingSteps:
     def test_includes_thinking_steps(self, db_session, seeded_homework, seeded_task):
         EvaluationService.start(db_session, seeded_homework.id, provider=EvaluationProvider.mock)
         detail = EvaluationService.get(db_session, seeded_homework.id)

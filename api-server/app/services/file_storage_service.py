@@ -141,11 +141,22 @@ class FileStorageService:
             # ── 绘制检测框标注（在底部评分条之前）──
             if annotations:
                 for ann in annotations:
+                    # 安全获取标注坐标（缺字段则跳过，避免脏数据导致整个 overlay 失败）
+                    try:
+                        x1_raw = ann.get("x1")
+                        y1_raw = ann.get("y1")
+                        x2_raw = ann.get("x2")
+                        y2_raw = ann.get("y2")
+                        if not all(isinstance(v, (int, float)) for v in (x1_raw, y1_raw, x2_raw, y2_raw)):
+                            continue
+                    except Exception:
+                        continue
+
                     # 将百分比坐标(0-100)转换为缩略图像素坐标
-                    x1 = int(ann["x1"] / 100 * w)
-                    y1 = int(ann["y1"] / 100 * h)
-                    x2 = int(ann["x2"] / 100 * w)
-                    y2 = int(ann["y2"] / 100 * h)
+                    x1 = int(x1_raw / 100 * w)
+                    y1 = int(y1_raw / 100 * h)
+                    x2 = int(x2_raw / 100 * w)
+                    y2 = int(y2_raw / 100 * h)
 
                     # 裁剪到图像边界
                     x1 = max(0, min(w, x1))

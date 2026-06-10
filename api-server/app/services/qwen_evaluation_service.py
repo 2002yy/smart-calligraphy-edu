@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import base64
 import json
+import logging
 import mimetypes
 from io import BytesIO
 from pathlib import Path
@@ -27,6 +28,19 @@ try:
     from PIL import Image
 except ImportError:  # pragma: no cover
     Image = None
+
+logger = logging.getLogger(__name__)
+
+# 允许的标签白名单——Qwen 输出中的 tags 必须属于此集合
+ALLOWED_TAGS: set[str] = {
+    # 正向
+    "结构工整", "重心稳当", "笔法到位", "主笔突出", "疏密得当",
+    "运笔流畅", "笔画有力",
+    # 负向
+    "中宫松散", "重心偏左/偏右", "撇捺角度过大", "横画扛肩过度",
+    "竖画不直", "主笔不突出", "疏密不当", "笔法有误", "运笔生硬",
+    "结构失衡", "大小不一", "间距不均", "笔画过细/过粗", "起笔收笔草率",
+}
 
 
 class QwenAnnotation(BaseModel):
@@ -99,6 +113,37 @@ class QwenEvaluationService:
                 return output.getvalue(), "image/png" if output_format == "PNG" else "image/jpeg"
         except Exception:
             return raw_bytes, mime_type
+
+    @staticmethod
+    def _extract_json(raw: str) -> str:
+        """从模型输出中提取 JSON 内容。
+
+        模型有时会返回 ```json ... ``` 包裹的内容，
+        或者在 JSON 前后添加额外的说明文字。
+        """
+        content = raw.strip()
+
+        # 尝试剥离 markdown 代码块（```json 和 ```）
+        for marker in ("```json", "```"):
+            idx = content.find(marker)
+            if idx != -1:
+                start = idx + len(marker)
+                end = content.rfind("```")
+                if end > start:
+                    content = content[start:end].strip()
+                else:
+                    content = content[start:].strip()
+
+        # 去掉可能的 BOM 或零宽字符
+        content = content.strip("﻿​")
+        return content
+
+    @staticmethod
+    def _filter_tags(tags: list[str]) -> list[str]:
+        """只保留白名单内的标签，舍弃模型自编的标签。"""
+        if not isinstance(tags, list):
+            return []
+        return [t for t in tags if t in ALLOWED_TAGS]
 
     @staticmethod
     def score(
@@ -245,7 +290,7 @@ class QwenEvaluationService:
         # ---- 解析响应 ----
         try:
             body = resp.json()
-            content = body["choices"][0]["message"]["content"]
+            content = QwenEvaluationService._extract_json(body["choices"][0]["message"]["content"])
             result = json.loads(content)
         except (KeyError, IndexError, json.JSONDecodeError) as exc:
             raise HTTPException(
@@ -272,12 +317,19 @@ class QwenEvaluationService:
 
         # 综合得分：优先用模型返回的 total_score，否则按权重计算
         total_score = _clamp(result.get("total_score"))
+        weighted = round(structure_score * 0.4 + center_score * 0.3 + stroke_order_score * 0.3, 1)
         if total_score == 0 and (structure_score > 0 or center_score > 0 or stroke_order_score > 0):
-            total_score = round(structure_score * 0.4 + center_score * 0.3 + stroke_order_score * 0.3, 1)
+            total_score = weighted
+        elif total_score > 0 and abs(total_score - weighted) >= 1.0:
+            # 模型返回的 total 与加权相差 >=1 分，说明模型跑偏了 → 以加权为准
+            logger.warning(
+                "Qwen total_score(%.1f) deviates from weighted(%.1f), using weighted",
+                total_score, weighted,
+            )
+            total_score = weighted
 
-        tags = result.get("tags", [])
-        if not isinstance(tags, list):
-            tags = []
+        # 标签白名单过滤
+        tags = QwenEvaluationService._filter_tags(result.get("tags", []))
 
         advice = str(result.get("advice", "") or "")[:200]
 

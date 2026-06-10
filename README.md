@@ -191,7 +191,7 @@ Config in `alembic.ini` + `alembic/env.py` (auto-imports all models).
 
 | 类型 | 覆盖范围 | 用例数 | 状态 |
 |------|---------|--------|------|
-| **pytest**（后端） | 登录认证、权限校验、Mock 评测、provider 选择、分数范围、思考链、跨用户/跨角色负例、文件存储/overlay | **87** | ✅ |
+| **pytest**（后端） | 登录认证、权限校验、Mock 评测、provider 选择、分数范围、思考链、跨用户/跨角色负例、文件存储/overlay、Qwen JSON 提取/白名单过滤 | **94** | ✅ |
 | **Vitest**（前端 store） | 登录/登出、班级、任务、提交、评测、文件选择 | **15** | ✅ |
 | **Playwright**（E2E） | API 冒烟 → 上传 → Mock 评测 → 看板回流 → UI 截图 | **全链路** | ✅ 本地可用，✅ CI 已接入 |
 | API 文档 | FastAPI `/docs` 自动生成 | — | ✅ |
