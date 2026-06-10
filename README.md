@@ -186,15 +186,19 @@ Config in `alembic.ini` + `alembic/env.py` (auto-imports all models).
 
 ---
 
-## 10. 🛡️ Public Version Boundary
+## 10. 🛡️ Production Deployment Checklist
 
-| 项目 | 说明 |
-|------|------|
-| **API Key** | 不提交真实 API Key（`.env` 已 gitignored） |
-| **AI 评测** | 默认 Mock 评分，无需 Key 可演示 |
-| **测试图片** | 仅本地演示，不公开暴露 |
-| **外网部署** | 必须开启 `SECURE_STATIC=true` 和配置 `CORS_ORIGINS` 白名单 |
-| **作品图片** | 签名 token 验证 + path 绑定 |
+外网部署前，请确认以下安全配置（参考 [`api-server/.env.production.example`](api-server/.env.production.example)）：
+
+| # | 配置项 | 强制？ | 说明 |
+|---|--------|--------|------|
+| 1 | `APP_ENV=production` | ✅ | 启用生产模式检查（如 JWT 默认值检测） |
+| 2 | `SECURE_STATIC=true` | ✅ | 静态资源需 Bearer token 或签名路径才能访问 |
+| 3 | `CORS_ORIGINS=...` | ✅ | 限制到实际域名，禁止 `*` |
+| 4 | `JWT_SECRET` 设为随机字符串 | ✅ | 默认 `change_me` 在生产环境会阻止启动 |
+| 5 | `CALLIGRAPHY_FONT_PATH` | ⚠️ | Linux 部署建议安装 `fonts-noto-cjk` 或手动指定路径，否则结果图中文不显示 |
+| 6 | `DATABASE_URL` | ⚠️ | 生产环境建议切换 PostgreSQL/MySQL |
+| 7 | `DEMO_PASSWORD` | ⚠️ | 改默认密码 |
 
 ---
 

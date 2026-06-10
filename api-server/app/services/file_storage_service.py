@@ -113,15 +113,22 @@ class FileStorageService:
             w, h = img.size
             draw = ImageDraw.Draw(img)
 
-            # 加载中文字体
+            # 加载中文字体（跨平台搜索 + 环境变量覆盖）
             font_large = None
             font_small = None
             font_tiny = None
-            for fp in [
+            font_candidates = [
+                settings.calligraphy_font_path,
+                "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+                "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+                "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
                 "C:/Windows/Fonts/msyh.ttc",
                 "C:/Windows/Fonts/simsun.ttc",
                 "C:/Windows/Fonts/simhei.ttf",
-            ]:
+            ]
+            for fp in font_candidates:
+                if not fp:
+                    continue
                 if Path(fp).exists():
                     try:
                         font_large = ImageFont.truetype(fp, 28)

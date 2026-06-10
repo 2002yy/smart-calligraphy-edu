@@ -56,6 +56,9 @@ class Settings(BaseModel):
     qwen_image_max_size: int = int(os.getenv("QWEN_IMAGE_MAX_SIZE", "768"))
     qwen_image_detail: str = os.getenv("QWEN_IMAGE_DETAIL", "low")
 
+    # 结果图中文覆盖字体路径（优先级最高，会覆盖自动搜索）
+    calligraphy_font_path: str = os.getenv("CALLIGRAPHY_FONT_PATH", "")
+
 
 settings = Settings()
 
