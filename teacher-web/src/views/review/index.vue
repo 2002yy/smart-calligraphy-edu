@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
+import { useRoute } from "vue-router";
 
 import AppSkeleton from "../../components/AppSkeleton.vue";
 import CollapsibleIntro from "../../components/CollapsibleIntro.vue";
@@ -11,9 +12,23 @@ const props = defineProps<{
   loading: boolean;
 }>();
 
+const route = useRoute();
+
 const statusFilter = ref<"all" | "reviewed" | "pending">("all");
 const aiFilter = ref<"all" | "with-ai" | "without-ai">("all");
+const tagFilter = ref<string | null>(null);
 const activeReviewId = ref<number | null>(null);
+
+onMounted(() => {
+  const qtag = route.query.tag;
+  if (typeof qtag === "string" && qtag.trim()) {
+    tagFilter.value = qtag.trim();
+  }
+});
+
+function clearTagFilter() {
+  tagFilter.value = null;
+}
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
 
@@ -34,7 +49,12 @@ const filteredReviews = computed(() =>
           ? hasAiResult
           : !hasAiResult;
 
-    return matchesStatus && matchesAi;
+    const matchesTag =
+      !tagFilter.value
+        ? true
+        : (review.tags ?? []).includes(tagFilter.value);
+
+    return matchesStatus && matchesAi && matchesTag;
   })
 );
 
@@ -108,6 +128,11 @@ function formatDate(value?: string | null) {
         </select>
       </label>
     </section>
+
+    <div v-if="tagFilter" class="active-tag-bar">
+      <span>标签筛选：<b>{{ tagFilter }}</b></span>
+      <button type="button" class="tag-filter-clear" @click="clearTagFilter">清除筛选</button>
+    </div>
 
     <div v-if="loading && !reviews.length" class="review-list">
       <article v-for="item in 3" :key="item" class="review-line skeleton-line">
@@ -487,6 +512,35 @@ function formatDate(value?: string | null) {
   padding: 0;
   margin: 0;
   list-style: none;
+}
+
+.active-tag-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  margin-bottom: 18px;
+  border-radius: 10px;
+  background: rgba(220, 80, 60, 0.06);
+  border: 1px solid rgba(220, 80, 60, 0.18);
+  font-size: 14px;
+}
+.active-tag-bar b {
+  color: #b84a38;
+}
+.tag-filter-clear {
+  margin-left: auto;
+  padding: 4px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(220, 80, 60, 0.2);
+  background: transparent;
+  color: #b84a38;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.tag-filter-clear:hover {
+  background: rgba(220, 80, 60, 0.08);
 }
 
 .skeleton-line {
