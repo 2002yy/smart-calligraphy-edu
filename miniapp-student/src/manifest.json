@@ -1,0 +1,14 @@
+{
+  "name": "智慧书法学生端",
+  "appid": "__UNI__SMARTCALLI",
+  "description": "智慧书法教育学生端小程序",
+  "versionName": "0.1.0",
+  "versionCode": "100",
+  "mp-weixin": {
+    "appid": "",
+    "setting": {
+      "urlCheck": false
+    },
+    "usingComponents": true
+  }
+}
