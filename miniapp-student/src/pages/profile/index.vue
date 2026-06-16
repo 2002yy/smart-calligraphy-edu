@@ -7,7 +7,9 @@ const studentStore = useStudentStore();
 
 onShow(() => {
   if (studentStore.token) {
-    studentStore.refresh();
+    studentStore.refresh().catch((error) => {
+      studentStore.setMessage(error instanceof Error ? error.message : "Refresh failed. Check backend service.");
+    });
   }
 });
 </script>
@@ -15,47 +17,53 @@ onShow(() => {
 <template>
   <view class="page">
     <view class="profile-head">
-      <view class="avatar">{{ (studentStore.user?.name || "学").slice(0, 1) }}</view>
+      <view class="avatar">{{ (studentStore.user?.name || "S").slice(0, 1) }}</view>
       <view>
-        <text class="title">{{ studentStore.user?.name || "学生" }}</text>
-        <text class="subtitle">{{ studentStore.user?.school_name || "智慧书法练习档案" }}</text>
+        <text class="title">{{ studentStore.user?.name || "Student" }}</text>
+        <text class="subtitle">Test build account: student01 / 123456</text>
       </view>
     </view>
 
+    <view class="card section demo-card">
+      <text class="block-title">Test build reminder</text>
+      <text class="muted-text">Invite code for this demo: CALLI2026</text>
+      <text class="muted-text">If no tasks appear after login, join the class here.</text>
+    </view>
+
     <view class="card section">
-      <text class="block-title">成长档案</text>
+      <text class="block-title">Progress</text>
       <view class="progress-row">
-        <text>平均分</text>
+        <text>Average score</text>
         <text class="strong">{{ studentStore.avgScore || "--" }}</text>
       </view>
       <view class="progress-row">
-        <text>提交作品</text>
+        <text>Submitted works</text>
         <text class="strong">{{ studentStore.history.length }}</text>
       </view>
       <view class="progress-row">
-        <text>待练任务</text>
+        <text>Tasks</text>
         <text class="strong">{{ studentStore.tasks.length }}</text>
       </view>
     </view>
 
     <view class="card section">
-      <text class="block-title">最近分数</text>
+      <text class="block-title">Recent scores</text>
       <view v-if="studentStore.progress?.recent_scores?.length" class="score-strip">
         <view v-for="(score, index) in studentStore.progress.recent_scores" :key="index" class="score-pill">
           <text>{{ Math.round(score * 10) }}</text>
         </view>
       </view>
-      <text v-else class="muted-text">暂无评分记录。</text>
+      <text v-else class="muted-text">No score records yet.</text>
     </view>
 
     <view class="card section">
-      <text class="block-title">加入新班级</text>
-      <text class="muted-text">输入老师给的邀请码，加入后会自动刷新任务列表。</text>
-      <input v-model="studentStore.inviteCode" class="invite-input" placeholder="请输入邀请码" />
-      <button class="secondary-button join-button" :loading="studentStore.joining" @tap="studentStore.joinClass">加入班级</button>
+      <text class="block-title">Join class</text>
+      <text class="muted-text">Test invite code: CALLI2026</text>
+      <input v-model="studentStore.inviteCode" class="invite-input" placeholder="CALLI2026" />
+      <button class="secondary-button join-button" :loading="studentStore.joining" @tap="studentStore.joinClass">Join class</button>
     </view>
 
-    <button class="secondary-button section" @tap="studentStore.logout">退出登录</button>
+    <button class="secondary-button section" @tap="studentStore.logout">Logout</button>
   </view>
 </template>
 
@@ -78,6 +86,11 @@ onShow(() => {
   font-weight: 900;
   line-height: 112rpx;
   text-align: center;
+}
+
+.demo-card {
+  background: #eef2ff;
+  box-shadow: none;
 }
 
 .block-title {
@@ -123,6 +136,8 @@ onShow(() => {
 }
 
 .muted-text {
+  display: block;
+  margin-top: 8rpx;
   font-size: 26rpx;
   color: #6b7280;
 }

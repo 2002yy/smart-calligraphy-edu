@@ -28,7 +28,7 @@ export const useStudentStore = defineStore("student", () => {
   const loading = ref(false);
   const joining = ref(false);
   const inviteCode = ref("CALLI2026");
-  const message = ref("登录后查看今日练习任务。");
+  const message = ref("Test build: login with student01 / 123456. Invite code: CALLI2026.");
 
   const todayTask = computed(() => tasks.value[0] || null);
   const avgScore = computed(() => Math.round((progress.value?.avg_score || 0) * 10));
@@ -38,6 +38,25 @@ export const useStudentStore = defineStore("student", () => {
     message.value = next;
   }
 
+  function fillDemoAccount() {
+    username.value = "student01";
+    password.value = "123456";
+    inviteCode.value = "CALLI2026";
+    setMessage("Demo info filled. Tap Login to continue.");
+  }
+
+  async function syncDataAfterLogin() {
+    try {
+      await refresh();
+    } catch (syncError) {
+      setMessage(
+        syncError instanceof Error
+          ? `Login success, but data sync failed: ${syncError.message}`
+          : "Login success, but data sync failed. Check backend and try refresh."
+      );
+    }
+  }
+
   async function login() {
     loading.value = true;
     try {
@@ -45,10 +64,12 @@ export const useStudentStore = defineStore("student", () => {
       token.value = response.access_token;
       user.value = response.user;
       uni.setStorageSync(TOKEN_KEY, response.access_token);
-      await refresh();
+      setMessage("Login success. If no tasks appear, join with invite code CALLI2026.");
+      uni.showToast({ title: "Login success", icon: "success" });
+      await syncDataAfterLogin();
       uni.switchTab({ url: "/pages/home/index" });
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "登录失败，请检查账号和后端服务。");
+      setMessage(error instanceof Error ? error.message : "Login failed. Check account, password, and backend service.");
     } finally {
       loading.value = false;
     }
@@ -61,7 +82,7 @@ export const useStudentStore = defineStore("student", () => {
     }
     try {
       user.value = await mobileApi.getCurrentUser();
-      await refresh();
+      await syncDataAfterLogin();
     } catch {
       logout();
     }
@@ -77,13 +98,13 @@ export const useStudentStore = defineStore("student", () => {
     selectedTask.value = selectedTask.value || taskData[0] || null;
     progress.value = progressData;
     history.value = historyData;
-    setMessage(taskData.length ? "今日练习已同步，可以开始上传作品。" : "暂时没有新的练习任务。");
+    setMessage(taskData.length ? "Tasks synced. You can start practice now." : "No tasks yet. Test invite code: CALLI2026.");
   }
 
   async function joinClass() {
     const code = inviteCode.value.trim();
     if (!code) {
-      setMessage("请输入老师提供的邀请码。");
+      setMessage("Enter the invite code. Test build code: CALLI2026.");
       return;
     }
 
@@ -91,9 +112,10 @@ export const useStudentStore = defineStore("student", () => {
     try {
       const result = await mobileApi.joinClass(code);
       await refresh();
-      setMessage(`已加入 ${result.class_name}，任务列表已更新。`);
+      uni.showToast({ title: "Joined", icon: "success" });
+      setMessage(`Joined ${result.class_name}. Task list refreshed.`);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "加入班级失败，请检查邀请码。");
+      setMessage(error instanceof Error ? error.message : "Join failed. Check invite code CALLI2026 and backend data.");
     } finally {
       joining.value = false;
     }
@@ -110,7 +132,7 @@ export const useStudentStore = defineStore("student", () => {
 
   async function submitAndEvaluate(filePath: string) {
     if (!selectedTask.value) {
-      setMessage("请先选择一个练习任务。");
+      setMessage("Select a task first. If none exists, join with CALLI2026.");
       return;
     }
     stage.value = "uploading";
@@ -124,7 +146,7 @@ export const useStudentStore = defineStore("student", () => {
       uni.navigateTo({ url: `/pages/result/index?id=${latestHomework.value.id}` });
     } catch (error) {
       stage.value = "failed";
-      setMessage(error instanceof Error ? error.message : "上传或评分失败，请稍后重试。");
+      setMessage(error instanceof Error ? error.message : "Upload or evaluation failed. Please try again.");
     }
   }
 
@@ -138,7 +160,7 @@ export const useStudentStore = defineStore("student", () => {
       }
       await new Promise((resolve) => setTimeout(resolve, 1500));
     }
-    throw new Error("评分等待超时，请稍后在历史记录中查看。");
+    throw new Error("Evaluation timed out. Check history later.");
   }
 
   async function loadResult(homeworkId: number) {
@@ -179,6 +201,7 @@ export const useStudentStore = defineStore("student", () => {
     avgScore,
     resultImage,
     setMessage,
+    fillDemoAccount,
     login,
     restoreSession,
     refresh,

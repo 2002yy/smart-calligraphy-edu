@@ -7,7 +7,9 @@ const studentStore = useStudentStore();
 
 onShow(() => {
   if (studentStore.token) {
-    studentStore.refresh();
+    studentStore.refresh().catch((error) => {
+      studentStore.setMessage(error instanceof Error ? error.message : "Refresh failed. Check backend service.");
+    });
   }
 });
 
@@ -23,44 +25,44 @@ function startToday() {
 <template>
   <view class="page">
     <view class="hero">
-      <text class="welcome">你好，{{ studentStore.user?.name || "同学" }}</text>
-      <text class="title">今天继续把每一笔写稳。</text>
+      <text class="welcome">Hi, {{ studentStore.user?.name || "student" }}</text>
+      <text class="title">Practice calligraphy, upload, and get AI feedback.</text>
       <text class="subtitle">{{ studentStore.message }}</text>
       <button class="primary-button hero-button" @tap="startToday">
-        {{ studentStore.todayTask ? "开始今日练习" : "查看任务列表" }}
+        {{ studentStore.todayTask ? "Start practice" : "View tasks" }}
       </button>
     </view>
 
     <view class="stats section">
       <view class="stat-card">
         <text class="stat-value">{{ studentStore.tasks.length }}</text>
-        <text class="stat-label">待练任务</text>
+        <text class="stat-label">Tasks</text>
       </view>
       <view class="stat-card">
         <text class="stat-value">{{ studentStore.avgScore || "--" }}</text>
-        <text class="stat-label">平均分</text>
+        <text class="stat-label">Avg score</text>
       </view>
       <view class="stat-card">
         <text class="stat-value">{{ studentStore.history.length }}</text>
-        <text class="stat-label">历史作品</text>
+        <text class="stat-label">Works</text>
       </view>
     </view>
 
     <view v-if="studentStore.todayTask" class="card section task-card" @tap="studentStore.openTask(studentStore.todayTask.id)">
-      <text class="card-label">今日推荐</text>
+      <text class="card-label">Today</text>
       <text class="task-title">{{ studentStore.todayTask.title }}</text>
-      <text class="task-desc">{{ studentStore.todayTask.description || "完成练习后可上传作品进行 AI 评分。" }}</text>
+      <text class="task-desc">{{ studentStore.todayTask.description || "Upload your work after practice to get an AI score." }}</text>
       <view class="char-row">
         <text v-for="char in studentStore.todayTask.practice_chars" :key="char" class="char-box">{{ char }}</text>
       </view>
     </view>
 
     <view v-else class="card section join-card">
-      <text class="card-label">加入班级</text>
-      <text class="task-title">输入老师提供的邀请码</text>
-      <text class="task-desc">加入班级后，老师发布的练习任务会同步到任务列表。</text>
-      <input v-model="studentStore.inviteCode" class="invite-input" placeholder="例如 CALLI2026" />
-      <button class="secondary-button join-button" :loading="studentStore.joining" @tap="studentStore.joinClass">加入班级</button>
+      <text class="card-label">Test invite</text>
+      <text class="task-title">Join class with CALLI2026</text>
+      <text class="task-desc">This test build uses invite code CALLI2026. Join the class first if the task list is empty.</text>
+      <input v-model="studentStore.inviteCode" class="invite-input" placeholder="CALLI2026" />
+      <button class="secondary-button join-button" :loading="studentStore.joining" @tap="studentStore.joinClass">Join class</button>
     </view>
   </view>
 </template>

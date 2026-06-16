@@ -2,9 +2,10 @@ export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://127.0.
 export const TOKEN_KEY = "student_mobile_token";
 
 interface ApiResponse<T> {
-  code: number;
-  message: string;
-  data: T;
+  code?: number;
+  message?: string;
+  detail?: string;
+  data?: T;
 }
 
 type Method = "GET" | "POST" | "PUT" | "DELETE";
@@ -14,16 +15,23 @@ function authHeader() {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+function parsePayload<T>(payload: unknown): ApiResponse<T> {
+  if (typeof payload === "string") {
+    return JSON.parse(payload) as ApiResponse<T>;
+  }
+  return payload as ApiResponse<T>;
+}
+
 function unwrap<T>(response: UniApp.RequestSuccessCallbackResult): T {
-  const payload = response.data as ApiResponse<T> | string;
-  const data = typeof payload === "string" ? JSON.parse(payload) as ApiResponse<T> : payload;
+  const data = parsePayload<T>(response.data);
+  const errorMessage = data?.message || data?.detail;
   if (response.statusCode < 200 || response.statusCode >= 300) {
-    throw new Error(data?.message || `HTTP ${response.statusCode}`);
+    throw new Error(errorMessage || `HTTP ${response.statusCode}`);
   }
-  if (data.code !== 0) {
-    throw new Error(data.message || "请求失败");
+  if (typeof data.code === "number" && data.code !== 0) {
+    throw new Error(errorMessage || "Request failed");
   }
-  return data.data;
+  return data.data as T;
 }
 
 export function request<T>(options: { url: string; method?: Method; data?: unknown; header?: Record<string, string> }) {
@@ -44,7 +52,7 @@ export function request<T>(options: { url: string; method?: Method; data?: unkno
           reject(error);
         }
       },
-      fail: (error) => reject(new Error(error.errMsg || "网络请求失败"))
+      fail: (error) => reject(new Error(error.errMsg || "Network request failed"))
     });
   });
 }
@@ -64,7 +72,7 @@ export function upload<T>(options: { url: string; filePath: string; formData?: R
           reject(error);
         }
       },
-      fail: (error) => reject(new Error(error.errMsg || "上传失败"))
+      fail: (error) => reject(new Error(error.errMsg || "Upload failed"))
     });
   });
 }
