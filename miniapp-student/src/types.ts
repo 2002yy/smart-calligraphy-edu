@@ -70,3 +70,10 @@ export interface EvaluationStart {
   evaluation_id: number;
   provider: "auto" | "mock" | "openai" | "qwen";
 }
+
+export interface ClassJoinResult {
+  class_id: number;
+  student_id: number;
+  status: string;
+  class_name: string;
+}

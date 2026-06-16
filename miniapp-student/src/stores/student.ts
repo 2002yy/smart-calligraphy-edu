@@ -26,6 +26,8 @@ export const useStudentStore = defineStore("student", () => {
   const progress = ref<Growth | null>(null);
   const stage = ref<Stage>("idle");
   const loading = ref(false);
+  const joining = ref(false);
+  const inviteCode = ref("CALLI2026");
   const message = ref("登录后查看今日练习任务。");
 
   const todayTask = computed(() => tasks.value[0] || null);
@@ -76,6 +78,25 @@ export const useStudentStore = defineStore("student", () => {
     progress.value = progressData;
     history.value = historyData;
     setMessage(taskData.length ? "今日练习已同步，可以开始上传作品。" : "暂时没有新的练习任务。");
+  }
+
+  async function joinClass() {
+    const code = inviteCode.value.trim();
+    if (!code) {
+      setMessage("请输入老师提供的邀请码。");
+      return;
+    }
+
+    joining.value = true;
+    try {
+      const result = await mobileApi.joinClass(code);
+      await refresh();
+      setMessage(`已加入 ${result.class_name}，任务列表已更新。`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "加入班级失败，请检查邀请码。");
+    } finally {
+      joining.value = false;
+    }
   }
 
   async function openTask(taskId: number) {
@@ -151,6 +172,8 @@ export const useStudentStore = defineStore("student", () => {
     progress,
     stage,
     loading,
+    joining,
+    inviteCode,
     message,
     todayTask,
     avgScore,
@@ -159,6 +182,7 @@ export const useStudentStore = defineStore("student", () => {
     login,
     restoreSession,
     refresh,
+    joinClass,
     openTask,
     loadTask,
     submitAndEvaluate,

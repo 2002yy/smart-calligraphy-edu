@@ -48,6 +48,13 @@ onShow(() => {
       <text v-else class="muted-text">暂无评分记录。</text>
     </view>
 
+    <view class="card section">
+      <text class="block-title">加入新班级</text>
+      <text class="muted-text">输入老师给的邀请码，加入后会自动刷新任务列表。</text>
+      <input v-model="studentStore.inviteCode" class="invite-input" placeholder="请输入邀请码" />
+      <button class="secondary-button join-button" :loading="studentStore.joining" @tap="studentStore.joinClass">加入班级</button>
+    </view>
+
     <button class="secondary-button section" @tap="studentStore.logout">退出登录</button>
   </view>
 </template>
@@ -118,5 +125,18 @@ onShow(() => {
 .muted-text {
   font-size: 26rpx;
   color: #6b7280;
+}
+
+.invite-input {
+  height: 84rpx;
+  margin-top: 22rpx;
+  border-radius: 14rpx;
+  background: #f3f4f6;
+  padding: 0 24rpx;
+  font-size: 28rpx;
+}
+
+.join-button {
+  margin-top: 18rpx;
 }
 </style>

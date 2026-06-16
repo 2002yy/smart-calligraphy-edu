@@ -48,11 +48,12 @@ def test_mobile_student_mvp_flow(monkeypatch):
         assert me_response.json()["data"]["username"] == "student01"
 
         join_response = client.post(
-            f"/api/v1/classes/{class_id}/join",
+            "/api/mobile/classes/join",
             json={"invite_code": "MOBILE2026"},
             headers={"Authorization": f"Bearer {student_token}"},
         )
         assert join_response.status_code == 200
+        assert join_response.json()["data"]["class_id"] == class_id
 
         task_response = client.post(
             "/api/v1/tasks",

@@ -54,6 +54,14 @@ function startToday() {
         <text v-for="char in studentStore.todayTask.practice_chars" :key="char" class="char-box">{{ char }}</text>
       </view>
     </view>
+
+    <view v-else class="card section join-card">
+      <text class="card-label">加入班级</text>
+      <text class="task-title">输入老师提供的邀请码</text>
+      <text class="task-desc">加入班级后，老师发布的练习任务会同步到任务列表。</text>
+      <input v-model="studentStore.inviteCode" class="invite-input" placeholder="例如 CALLI2026" />
+      <button class="secondary-button join-button" :loading="studentStore.joining" @tap="studentStore.joinClass">加入班级</button>
+    </view>
   </view>
 </template>
 
@@ -138,5 +146,18 @@ function startToday() {
   font-weight: 800;
   line-height: 64rpx;
   text-align: center;
+}
+
+.invite-input {
+  height: 84rpx;
+  margin-top: 24rpx;
+  border-radius: 14rpx;
+  background: #f3f4f6;
+  padding: 0 24rpx;
+  font-size: 28rpx;
+}
+
+.join-button {
+  margin-top: 18rpx;
 }
 </style>

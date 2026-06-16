@@ -1,5 +1,5 @@
 import { request, upload } from "./request";
-import type { CurrentUser, EvaluationStart, Growth, Homework, LoginResponse, MobileResult, StudentTask } from "../types";
+import type { ClassJoinResult, CurrentUser, EvaluationStart, Growth, Homework, LoginResponse, MobileResult, StudentTask } from "../types";
 
 export const mobileApi = {
   login(username: string, password: string) {
@@ -11,6 +11,13 @@ export const mobileApi = {
   },
   getCurrentUser() {
     return request<CurrentUser>({ url: "/api/mobile/me" });
+  },
+  joinClass(inviteCode: string) {
+    return request<ClassJoinResult>({
+      url: "/api/mobile/classes/join",
+      method: "POST",
+      data: { invite_code: inviteCode }
+    });
   },
   getTasks() {
     return request<StudentTask[]>({ url: "/api/mobile/tasks" });

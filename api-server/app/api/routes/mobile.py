@@ -2,17 +2,18 @@ import io
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.repositories import ClassMemberRepository, TaskRepository
+from app.repositories import ClassMemberRepository, ClassroomRepository, TaskRepository
 from app.schemas.auth import CurrentUserRead, LoginRequest, LoginResponse
 from app.schemas.common import APIResponse
 from app.schemas.evaluation import EvaluationProvider
 from app.schemas.homework import HomeworkRead, HomeworkSubmitRequest
 from app.schemas.task import TaskRead
 from app.schemas.user import GrowthRead
-from app.services import EvaluationService, HomeworkService, TaskService, UserService
+from app.services import ClassService, EvaluationService, HomeworkService, TaskService, UserService
 from app.services.auth_service import AuthService, get_current_user
 from app.services.permission_service import assert_owns_homework, assert_student
 
@@ -27,6 +28,10 @@ router = APIRouter()
 ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
 ALLOWED_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp"}
 MAX_UPLOAD_BYTES = 5 * 1024 * 1024
+
+
+class MobileJoinClassRequest(BaseModel):
+    invite_code: str
 
 
 def _assert_mobile_student(db: Session, current_user: dict) -> None:
@@ -90,6 +95,25 @@ def mobile_login(payload: LoginRequest, db: Session = Depends(get_db)):
 def mobile_me(current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
     _assert_mobile_student(db, current_user)
     return APIResponse[CurrentUserRead](data=CurrentUserRead(**current_user))
+
+
+@router.post("/classes/join", response_model=APIResponse[dict], summary="Mobile join class by invite code")
+def mobile_join_class(
+    payload: MobileJoinClassRequest,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _assert_mobile_student(db, current_user)
+    invite_code = payload.invite_code.strip()
+    if not invite_code:
+        raise HTTPException(status_code=400, detail="invite_code is required")
+
+    classroom = ClassroomRepository.get_by_invite_code(db, invite_code)
+    if not classroom:
+        raise HTTPException(status_code=404, detail="class invite code not found")
+
+    data = ClassService.join_class(db, classroom.id, current_user["id"], invite_code)
+    return APIResponse[dict](data={**data, "class_name": classroom.name})
 
 
 @router.get("/tasks", response_model=APIResponse[list[TaskRead]], summary="Mobile task list")
