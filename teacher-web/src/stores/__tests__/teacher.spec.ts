@@ -3,16 +3,6 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { useTeacherStore } from "../teacher";
 
-// ----- helpers -----
-
-function mockResolved<T>(data: T) {
-  return vi.fn().mockResolvedValue(data);
-}
-
-function mockRejected(message: string) {
-  return vi.fn().mockRejectedValue(new Error(message));
-}
-
 // ----- mocks -----
 
 const mockCurrentUser = {
