@@ -28,7 +28,6 @@ class Settings(BaseModel):
     db_password: str = os.getenv("DB_PASSWORD", "your_password")
     database_url: str | None = os.getenv("DATABASE_URL", "sqlite:///./smart_calligraphy.db")
     jwt_secret: str = os.getenv("JWT_SECRET", "change_me")
-    ai_service_url: str = os.getenv("AI_SERVICE_URL", "http://127.0.0.1:9001")
     evaluation_provider: str = os.getenv("EVALUATION_PROVIDER", "mock")
     openai_evaluation_enabled: bool = os.getenv("OPENAI_EVALUATION_ENABLED", "false").lower() in {
         "1",
