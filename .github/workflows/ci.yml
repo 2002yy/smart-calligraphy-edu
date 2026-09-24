@@ -79,8 +79,9 @@ jobs:
           npm ci --prefix student-app
 
       - name: Install Playwright deps
+        working-directory: playwright-smoke
         run: |
-          npm ci --prefix playwright-smoke
+          npm ci
           npx playwright install chromium --with-deps
 
       - name: Build frontends
@@ -89,8 +90,9 @@ jobs:
           npm run build --prefix student-app
 
       - name: Start backend
+        working-directory: api-server
         run: |
-          cp api-server/.env.example api-server/.env
+          cp .env.example .env
           uvicorn app.main:app --host 127.0.0.1 --port 8000 &
           echo "PID_API=$!" >> $GITHUB_ENV
 
@@ -108,17 +110,23 @@ jobs:
 
       - name: Wait for services
         run: |
+          ready=false
           for i in $(seq 1 30); do
-            api_ok=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8000/ 2>/dev/null || echo "000")
-            teacher_ok=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5173/ 2>/dev/null || echo "000")
-            student_ok=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5174/ 2>/dev/null || echo "000")
+            api_ok=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8000/ 2>/dev/null || true)
+            teacher_ok=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5173/ 2>/dev/null || true)
+            student_ok=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5174/ 2>/dev/null || true)
             echo "poll $i: api=$api_ok teacher=$teacher_ok student=$student_ok"
             if [ "$api_ok" = "200" ] && [ "$teacher_ok" != "000" ] && [ "$student_ok" != "000" ]; then
               echo "All services ready"
+              ready=true
               break
             fi
             sleep 2
           done
+          if [ "$ready" != "true" ]; then
+            echo "Services did not become ready within 60 seconds" >&2
+            exit 1
+          fi
 
       - name: Run smoke tests
         run: node smoke.js
