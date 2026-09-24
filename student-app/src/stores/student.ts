@@ -205,8 +205,6 @@ export const useStudentStore = defineStore("student", () => {
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "作业提交失败。", "error");
       return null;
-    } finally {
-      
     }
   }
 
