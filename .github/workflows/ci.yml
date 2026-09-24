@@ -129,8 +129,14 @@ jobs:
           fi
 
       - name: Run smoke tests
-        run: node smoke.js
         working-directory: playwright-smoke
+        shell: bash
+        run: |
+          node smoke.js 2>&1 | tee smoke.log
+          if grep -Eq '^\[FAIL\]|^\[WARN\] 无任务$|^\[WARN\] (教师端|学生端) UI 异常:' smoke.log; then
+            echo "Smoke reported a core failure that did not exit nonzero." >&2
+            exit 1
+          fi
 
       - name: Kill background services
         if: always()
