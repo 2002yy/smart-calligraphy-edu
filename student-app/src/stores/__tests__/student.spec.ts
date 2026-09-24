@@ -57,6 +57,7 @@ vi.mock("../../api", () => ({
     startEvaluation: vi.fn(),
     getEvaluation: vi.fn(),
     getGrowth: vi.fn(),
+    getTagTrend: vi.fn(),
   },
 }));
 
