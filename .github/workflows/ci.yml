@@ -14,8 +14,74 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Detect changed surfaces
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      teacher: ${{ steps.filter.outputs.teacher }}
+      student: ${{ steps.filter.outputs.student }}
+      e2e: ${{ steps.filter.outputs.e2e }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - name: Classify changes
+        id: filter
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          backend=false
+          teacher=false
+          student=false
+          e2e=false
+
+          if [[ -z "${BASE_SHA}" || "${BASE_SHA}" =~ ^0+$ ]]; then
+            backend=true
+            teacher=true
+            student=true
+            e2e=true
+          else
+            git diff --name-only "${BASE_SHA}" "${HEAD_SHA}" > "${RUNNER_TEMP}/changed-files"
+            while IFS= read -r path; do
+              case "$path" in
+                api-server/*)
+                  backend=true
+                  e2e=true
+                  ;;
+                teacher-web/*)
+                  teacher=true
+                  e2e=true
+                  ;;
+                student-app/*)
+                  student=true
+                  e2e=true
+                  ;;
+                playwright-smoke/*)
+                  e2e=true
+                  ;;
+                .github/workflows/ci.yml)
+                  backend=true
+                  teacher=true
+                  student=true
+                  e2e=true
+                  ;;
+              esac
+            done < "${RUNNER_TEMP}/changed-files"
+          fi
+
+          echo "backend=${backend}" >> "$GITHUB_OUTPUT"
+          echo "teacher=${teacher}" >> "$GITHUB_OUTPUT"
+          echo "student=${student}" >> "$GITHUB_OUTPUT"
+          echo "e2e=${e2e}" >> "$GITHUB_OUTPUT"
 
   backend:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -36,6 +102,8 @@ jobs:
         run: pytest -v
 
   teacher-web:
+    needs: changes
+    if: needs.changes.outputs.teacher == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -55,9 +123,39 @@ jobs:
       - name: Test
         run: npm test
 
-  playwright-e2e:
+  student-app:
+    needs: changes
+    if: needs.changes.outputs.student == 'true'
     runs-on: ubuntu-latest
-    needs: [backend, teacher-web, student-app]
+    defaults:
+      run:
+        working-directory: student-app
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: student-app/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Test
+        run: npm test
+
+  playwright-e2e:
+    needs: [changes, backend, teacher-web, student-app]
+    if: >-
+      ${{
+        always() &&
+        needs.changes.outputs.e2e == 'true' &&
+        (needs.backend.result == 'success' || needs.backend.result == 'skipped') &&
+        (needs.teacher-web.result == 'success' || needs.teacher-web.result == 'skipped') &&
+        (needs.student-app.result == 'success' || needs.student-app.result == 'skipped')
+      }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -151,23 +249,3 @@ jobs:
           kill ${{ env.PID_API }} 2>/dev/null || true
           kill ${{ env.PID_TEACHER }} 2>/dev/null || true
           kill ${{ env.PID_STUDENT }} 2>/dev/null || true
-
-  student-app:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: student-app
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: "npm"
-          cache-dependency-path: student-app/package-lock.json
-      - name: Install dependencies
-        run: npm ci
-      - name: Build
-        run: npm run build
-      - name: Test
-        run: npm test
