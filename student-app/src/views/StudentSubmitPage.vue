@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { storeToRefs } from "pinia";
 
 import { studentApi } from "../api";
@@ -8,10 +8,9 @@ import CollapsibleIntro from "../components/CollapsibleIntro.vue";
 import PageState from "../components/PageState.vue";
 import ScoreRing from "../components/ScoreRing.vue";
 import { useStudentStore } from "../stores/student";
-import type { ThinkingStep } from "../types";
 
 const store = useStudentStore();
-const { user, loading, selectedTask, submitForm, latestHomework, evaluation, submitStage, previewUrl } =
+const { user, loading, selectedTask, submitForm, latestHomework, evaluation, evaluationProvider, submitStage, previewUrl } =
   storeToRefs(store);
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
@@ -46,18 +45,13 @@ const resultImageUrl = computed(() => {
   return `${apiBaseUrl}${source.startsWith("/") ? source : `/${source}`}`;
 });
 
-// ---- Thinking chain animation ----
-// Timing config (ms) — varies by provider for realistic pacing
-const STEP_RUNNING_MS: Record<string, number> = { mock: 500, openai: 1200, qwen: 2800, auto: 800 };
-const STEP_GAP_MS: Record<string, number> = { mock: 120, openai: 350, qwen: 300, auto: 200 };
-
-const localThinkingSteps = ref<ThinkingStep[]>([]);
+// 仅展示后端实际返回的分析步骤；等待期间没有可验证的逐步进度。
+const returnedThinkingSteps = computed(() => evaluation.value?.thinking_steps ?? []);
 const thinkingExpanded = ref(true);
-const chainVisible = ref(false);
-const waitingForResult = ref(false);
 const isDevMode = import.meta.env.DEV;
 const qwenEnabled = ref(false);
 const providerLoaded = ref(false);
+const isDemoMode = computed(() => evaluationProvider.value === "mock" || (!qwenEnabled.value && providerLoaded.value));
 
 onMounted(async () => {
   try {
@@ -66,92 +60,6 @@ onMounted(async () => {
   } catch {}
   providerLoaded.value = true;
 });
-const currentProvider = computed(() => {
-  // 默认用 "qwen" 动画效果（与按钮保持一致）
-  return "qwen";
-});
-let animationActive = false;
-let animationTimers: number[] = [];
-
-watch(() => isEvaluating.value, (val) => {
-  if (val) {
-    waitingForResult.value = false;
-    chainVisible.value = true;
-    startThinkingAnimation(currentProvider.value);
-  } else if (!val && !evaluation.value) {
-    stopAnimation();
-    chainVisible.value = false;
-    waitingForResult.value = false;
-  }
-});
-
-watch(evaluation, (evalData) => {
-  if (evalData) {
-    stopAnimation();
-    waitingForResult.value = false;
-    localThinkingSteps.value =
-      evalData.thinking_steps?.length > 0
-        ? evalData.thinking_steps
-        : localThinkingSteps.value.map((s) => ({ ...s, status: "done" as const }));
-    thinkingExpanded.value = true;
-  }
-});
-
-onBeforeUnmount(stopAnimation);
-
-function stopAnimation() {
-  animationActive = false;
-  animationTimers.forEach(clearTimeout);
-  animationTimers = [];
-}
-
-function startThinkingAnimation(provider = "auto") {
-  stopAnimation();
-  const runMs = STEP_RUNNING_MS[provider] ?? STEP_RUNNING_MS.auto;
-  const gapMs = STEP_GAP_MS[provider] ?? STEP_GAP_MS.auto;
-
-  const mockSteps: ThinkingStep[] = [
-    { step: 1, title: "图像预处理", detail: "正在加载书法作业图像...", status: "pending" },
-    { step: 2, title: "文字区域检测", detail: "检测练习字区域...", status: "pending" },
-    { step: 3, title: "单字分割", detail: "分割单字区域...", status: "pending" },
-    { step: 4, title: "结构分析", detail: "分析字形结构...", status: "pending" },
-    { step: 5, title: "重心检测", detail: "检测书写重心...", status: "pending" },
-    { step: 6, title: "笔法验证", detail: "分析笔画规范性...", status: "pending" },
-    { step: 7, title: "综合评分", detail: "生成最终评分...", status: "pending" },
-  ];
-  localThinkingSteps.value = mockSteps;
-  animationActive = true;
-  thinkingExpanded.value = true;
-  chainVisible.value = true;
-  let stepIndex = 0;
-
-  const revealNext = () => {
-    if (!animationActive) return;
-    if (stepIndex >= mockSteps.length) {
-      // 7 步播完但评测可能还没回来，进入等待状态
-      waitingForResult.value = true;
-      return;
-    }
-    const copy = [...localThinkingSteps.value];
-    copy[stepIndex] = { ...copy[stepIndex], status: "running" };
-    localThinkingSteps.value = copy;
-
-    const t1 = window.setTimeout(() => {
-      if (!animationActive) return;
-      const copy2 = [...localThinkingSteps.value];
-      copy2[stepIndex] = { ...copy2[stepIndex], status: "done" };
-      localThinkingSteps.value = copy2;
-      stepIndex++;
-      const t2 = window.setTimeout(revealNext, gapMs);
-      animationTimers.push(t2);
-    }, runMs);
-    animationTimers.push(t1);
-  };
-
-  revealNext();
-}
-// ---- end thinking chain ----
-
 function hasFileError() {
   return !submitForm.value.selectedFileName?.trim();
 }
@@ -236,7 +144,7 @@ function handleFileChange(event: Event) {
             </div>
             <div class="status-copy">
               <strong>上传成功，作品已进入系统</strong>
-              <p>现在可以直接触发 Qwen AI 评分，系统会在右侧生成可回看的评测结果图和练习建议。</p>
+              <p>{{ qwenEnabled ? "可以发起 Qwen AI 评分，获取作品分析与练习建议。" : "作业已保存。Qwen AI 暂不可用，Mock 分数仅供开发调试，不代表真实书写水平。" }}</p>
             </div>
           </section>
 
@@ -246,8 +154,8 @@ function handleFileChange(event: Event) {
               <span class="dot">评</span>
             </div>
             <div class="status-copy">
-              <strong>{{ waitingForResult ? "等待 AI 返回结果" : "正在分析结构、重心与笔势" }}</strong>
-              <p>{{ waitingForResult ? "7 步分析已完成，AI 正在生成最终评分，约 20-30 秒。" : "系统正在生成评分结果，请稍候查看总分、问题标签和作品回看图。" }}</p>
+              <strong>{{ isDemoMode ? "正在生成 Mock 演示分数" : "等待 Qwen 返回评测结果" }}</strong>
+              <p>{{ isDemoMode ? "演示数据不会分析上传图片，不能用来判断真实书写水平。" : "服务端暂不提供实时分析进度，结果返回后会展示实际评分。" }}</p>
             </div>
           </section>
 
@@ -262,17 +170,17 @@ function handleFileChange(event: Event) {
 
         <section v-if="providerLoaded" class="mode-badge">
             <span class="mode-dot" :class="qwenEnabled ? 'online' : 'offline'"></span>
-            <span class="mode-text">{{ qwenEnabled ? 'AI 模式' : 'Mock 演示模式' }}</span>
+            <span class="mode-text">{{ qwenEnabled ? 'Qwen AI 可用' : isDevMode ? 'AI 未配置｜可使用 Mock 调试' : 'AI 未配置｜仅保存作业' }}</span>
         </section>
 
         <div class="action-stack">
-          <button class="hero-btn" :disabled="isBusy" @click="store.submitAndEvaluate()">
+          <button class="hero-btn" :disabled="isBusy || !providerLoaded" @click="qwenEnabled ? store.submitAndEvaluate() : store.submitHomework()">
             <span class="btn-content">
               <span v-if="isEvaluating" class="btn-spinner white"></span>
               <svg v-else class="hero-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M10 1.5v3M10 15.5v3M4.22 4.22l2.12 2.12M13.66 13.66l2.12 2.12M1.5 10h3M15.5 10h3M4.22 15.78l2.12-2.12M13.66 6.34l2.12-2.12"/>
               </svg>
-              {{ isEvaluating ? "提交并评测中..." : "提交作业并评测" }}
+              {{ isEvaluating ? "提交并评测中..." : qwenEnabled ? "提交作业并进行 Qwen AI 评分" : "仅提交作业（AI 暂不可用）" }}
             </span>
           </button>
 
@@ -283,17 +191,21 @@ function handleFileChange(event: Event) {
             </span>
           </button>
 
-          <button class="secondary-btn" :disabled="isUploading || isEvaluating" @click="store.submitHomework()">
+          <button v-if="isDevMode && !qwenEnabled" class="secondary-btn" :disabled="isBusy" @click="latestHomework ? store.evaluateHomework('mock') : store.submitAndEvaluate('mock')">
+            生成 Mock 演示分数（仅开发调试，非 AI）
+          </button>
+
+          <button v-if="qwenEnabled" class="secondary-btn" :disabled="isUploading || isEvaluating" @click="store.submitHomework()">
             <span class="btn-content">
               <span v-if="isUploading" class="btn-spinner"></span>
               {{ isUploading ? "提交中..." : "仅提交作业" }}
             </span>
           </button>
 
-          <button class="ghost-btn" :disabled="isEvaluating || !latestHomework" @click="store.evaluateHomework()">
+          <button v-if="qwenEnabled" class="ghost-btn" :disabled="isEvaluating || !latestHomework || !providerLoaded" @click="store.evaluateHomework('qwen')">
             <span class="btn-content">
               <span v-if="isEvaluating" class="btn-spinner dark"></span>
-              {{ isEvaluating ? "评测中..." : "对最近一次作业发起评测" }}
+              {{ isEvaluating ? "评测中..." : "用 Qwen 重新评测最近作业" }}
             </span>
           </button>
         </div>
@@ -303,111 +215,39 @@ function handleFileChange(event: Event) {
 
       <Transition name="chain-switch" mode="out-in">
         <PageState
-          v-if="isEvaluating && !evaluation && !chainVisible"
+          v-if="isEvaluating && !evaluation"
           key="loading"
           mode="loading"
-          title="正在生成评分结果"
-          description="系统正在分析结构、重心和笔画表现，请稍候查看分数、标签与练习建议。"
+          :title="isDemoMode ? '正在生成 Mock 演示结果' : '等待 Qwen AI 评分'"
+          :description="isDemoMode ? '当前返回的是模拟数据，不代表真实书写水平。' : '系统暂不提供实时步骤进度，评分完成后才展示实际分析结果。'"
           compact
         />
-
-        <section
-          v-else-if="isEvaluating && !evaluation && chainVisible"
-          key="evaluating"
-          class="result-shell"
-        >
-          <div class="thinking-chain">
-            <div class="thinking-header">
-              <div class="thinking-header-left">
-                <span class="thinking-icon">⟐</span>
-                <span>思考过程</span>
-                <span class="step-count">
-                  {{ localThinkingSteps.filter((s) => s.status === "done").length }}/{{ localThinkingSteps.length }}
-                </span>
-              </div>
-            </div>
-            <div class="steps-list">
-              <div
-                v-for="step in localThinkingSteps"
-                :key="step.step"
-                class="step-item"
-                :class="`step-${step.status}`"
-              >
-                <div class="step-indicator">
-                  <span v-if="step.status === 'pending'" class="step-circle pending">
-                    <span class="pending-dot"></span>
-                  </span>
-                  <span v-else-if="step.status === 'running'" class="step-circle running">
-                    <span class="running-spinner"></span>
-                  </span>
-                  <span v-else class="step-circle done"><span class="checkmark">✓</span></span>
-                  <span v-if="step.step < localThinkingSteps.length" class="step-line" :class="{ 'line-done': step.status === 'done' }"></span>
-                </div>
-                <div class="step-body">
-                  <div class="step-title">{{ step.title }}</div>
-                  <div v-if="step.detail" class="step-detail">{{ step.detail }}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section
-          v-else-if="isEvaluating && !evaluation && waitingForResult"
-          key="waiting"
-          class="result-shell"
-        >
-          <div class="thinking-chain">
-            <div class="thinking-header">
-              <div class="thinking-header-left">
-                <span class="thinking-icon">⟐</span>
-                <span>思考过程</span>
-                <span class="step-count">7/7</span>
-              </div>
-            </div>
-            <div class="steps-list">
-              <div v-for="step in localThinkingSteps" :key="step.step" class="step-item step-done">
-                <div class="step-indicator">
-                  <span class="step-circle done"><span class="checkmark">✓</span></span>
-                  <span v-if="step.step < localThinkingSteps.length" class="step-line line-done"></span>
-                </div>
-                <div class="step-body">
-                  <div class="step-title">{{ step.title }}</div>
-                </div>
-              </div>
-            </div>
-            <div class="waiting-banner">
-              <span class="waiting-dots">正在生成综合评价</span>
-              <span class="waiting-sub">即将返回评分结果</span>
-            </div>
-          </div>
-        </section>
 
         <section v-else-if="evaluation" key="results" class="result-shell">
           <div class="section-head">
             <h3>评分结果</h3>
-            <span>即时反馈</span>
+            <span>{{ evaluationProvider === 'mock' ? 'Mock 演示｜未分析图片' : evaluationProvider === 'qwen' ? 'Qwen AI 评分' : evaluationProvider === 'openai' ? 'OpenAI 评分' : '评分来源未确认' }}</span>
           </div>
 
           <!-- collapsible thinking chain -->
-          <div v-if="localThinkingSteps.length" class="thinking-chain done-chain">
+          <div v-if="returnedThinkingSteps.length" class="thinking-chain done-chain">
             <div class="thinking-header" @click="thinkingExpanded = !thinkingExpanded">
               <div class="thinking-header-left">
                 <span class="thinking-icon">⟐</span>
-                <span>思考过程</span>
-                <span class="step-count">{{ localThinkingSteps.filter((s) => s.status === "done").length }}/{{ localThinkingSteps.length }}</span>
+                <span>{{ evaluationProvider === 'mock' ? '演示步骤（非真实分析）' : '模型返回的分析说明' }}</span>
+                <span class="step-count">{{ returnedThinkingSteps.length }} 步</span>
               </div>
               <span class="toggle-icon">{{ thinkingExpanded ? "收起" : "展开" }}</span>
             </div>
             <TransitionGroup v-if="thinkingExpanded" name="step-fade" tag="div" class="steps-list">
               <div
-                v-for="step in localThinkingSteps"
+                v-for="step in returnedThinkingSteps"
                 :key="step.step"
                 class="step-item step-done"
               >
                 <div class="step-indicator">
                   <span class="step-circle done"><span class="checkmark">✓</span></span>
-                  <span v-if="step.step < localThinkingSteps.length" class="step-line line-done"></span>
+                  <span v-if="step.step < returnedThinkingSteps.length" class="step-line line-done"></span>
                 </div>
                 <div class="step-body">
                   <div class="step-title">{{ step.title }}</div>
@@ -1002,14 +842,6 @@ function handleFileChange(event: Event) {
   transition: opacity 0.35s ease, transform 0.35s ease;
 }
 
-.step-pending {
-  opacity: 0.35;
-}
-
-.step-running {
-  opacity: 1;
-}
-
 .step-done {
   opacity: 1;
 }
@@ -1031,32 +863,6 @@ function handleFileChange(event: Event) {
   flex-shrink: 0;
   position: relative;
   z-index: 1;
-}
-
-.step-circle.pending {
-  border: 2px solid rgba(21, 66, 90, 0.18);
-  background: transparent;
-}
-
-.pending-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: rgba(21, 66, 90, 0.2);
-}
-
-.step-circle.running {
-  border: 2px solid rgba(43, 151, 202, 0.3);
-  background: rgba(43, 151, 202, 0.08);
-  animation: step-running-pulse 1s ease-in-out infinite;
-}
-
-.running-spinner {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: #2b97ca;
-  animation: step-running-dot 0.8s ease-in-out infinite;
 }
 
 .step-circle.done {
@@ -1129,48 +935,4 @@ function handleFileChange(event: Event) {
   opacity: 0;
 }
 
-.waiting-banner {
-  display: grid;
-  place-items: center;
-  gap: 6px;
-  padding: 18px 0 6px;
-  text-align: center;
-}
-.waiting-dots {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--ink, #1a2e3a);
-  animation: waitPulse 1.8s ease-in-out infinite;
-}
-.waiting-sub {
-  font-size: 13px;
-  color: var(--muted, #6a7e8a);
-}
-
-@keyframes waitPulse {
-  0%, 100% { opacity: 0.45; }
-  50% { opacity: 1; }
-}
-
-@keyframes step-running-pulse {
-  0%, 100% {
-    border-color: rgba(43, 151, 202, 0.3);
-    box-shadow: 0 0 0 0 rgba(43, 151, 202, 0.1);
-  }
-  50% {
-    border-color: rgba(43, 151, 202, 0.6);
-    box-shadow: 0 0 0 6px rgba(43, 151, 202, 0);
-  }
-}
-
-@keyframes step-running-dot {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.3);
-    opacity: 0.7;
-  }
-}
 </style>
