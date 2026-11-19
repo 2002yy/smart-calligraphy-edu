@@ -119,9 +119,10 @@ async function main() {
           const reviews = await fetch(`${API}/api/v1/reviews?teacher_id=1`, {
             headers: { Authorization: `Bearer ${th}` },
           }).then(r => r.json()).then(d => d.data || []);
-          console.log(reviews.some((review) => review.homework_id === hwId)
-            ? "[FAIL] Mock 作业不应自动生成教师待批阅记录"
-            : "[OK]  Mock 演示未产生教师待批阅任务");
+          if (reviews.some((review) => review.homework_id === hwId)) {
+            throw new Error("Mock 作业不应自动生成教师待批阅记录");
+          }
+          console.log("[OK]  Mock 演示未产生教师待批阅任务");
 
           // 看板数据
           const dash = await fetch(`${API}/api/v1/dashboard/class/1`, {
@@ -145,6 +146,7 @@ async function main() {
     // ── 2. 教师端 UI 冒烟 ──
     console.log("\n=== 2/4 教师端 UI ===");
     const tp = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    let sourceFilterVerified = false;
     try {
       await tp.goto(TEACHER, { waitUntil: "domcontentloaded", timeout: 15000 });
       await tp.waitForSelector("text=智慧书法", { timeout: 10000 });
@@ -159,14 +161,14 @@ async function main() {
       await tp.getByText("评分来源").first().waitFor({ timeout: 15000 });
       const defaultSource = await tp.getByRole("combobox").first().inputValue();
       const mockLabelCount = await tp.getByText("Mock 演示分数（非 AI）").count();
-      console.log(defaultSource === "official" && mockLabelCount === 0
-        ? "[OK]  教师正式批阅默认排除 Mock 演示记录"
-        : "[FAIL] 教师默认批阅列表仍混有 Mock 演示记录");
+      sourceFilterVerified = defaultSource === "official" && mockLabelCount === 0;
+      if (sourceFilterVerified) console.log("[OK]  教师正式批阅默认排除 Mock 演示记录");
     } catch (e) {
       console.log("[WARN] 教师端 UI 异常:", e.message?.slice(0, 60));
     } finally {
       await tp.close();
     }
+    if (!sourceFilterVerified) throw new Error("教师正式批阅来源筛选验证未通过");
 
     // ── 3. 学生端 UI 冒烟 ──
     console.log("\n=== 3/4 学生端 UI ===");
