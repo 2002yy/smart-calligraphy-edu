@@ -155,7 +155,8 @@ jobs:
         (needs.teacher-web.result == 'success' || needs.teacher-web.result == 'skipped') &&
         (needs.student-app.result == 'success' || needs.student-app.result == 'skipped')
       }}
-    runs-on: ubuntu-latest
+    # Playwright 1.59 不支持 ubuntu-latest 当前指向的 Ubuntu 26.04。
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
