@@ -97,6 +97,44 @@ class TestStartEvaluation:
         assert detail["status"] == "finished"
         assert detail["total_score"] > 0
 
+    def test_qwen_result_with_annotations_is_persisted_as_finished(
+        self, db_session, seeded_homework, seeded_task, monkeypatch
+    ):
+        """真实 Qwen 的 payload 含 annotations；图层消费后不能传入 Repository。"""
+        from app.core import database
+        from app.repositories import EvaluationRepository
+        from app.services import evaluation_service as module
+        from app.services.file_storage_service import FileStorageService
+
+        class InlineThread:
+            def __init__(self, target, daemon):
+                self.target = target
+
+            def start(self):
+                self.target()
+
+        annotations = [{"x1": 10, "y1": 20, "x2": 30, "y2": 40, "label": "结构偏移"}]
+        payload = EvaluationService._build_mock_result(seeded_homework.id, seeded_task)
+        payload["annotations"] = annotations
+        overlays = []
+
+        monkeypatch.setattr(QwenEvaluationService, "is_configured", staticmethod(lambda: True))
+        monkeypatch.setattr(EvaluationService, "_build_qwen_result", staticmethod(lambda *_: dict(payload)))
+        monkeypatch.setattr(module.threading, "Thread", InlineThread)
+        monkeypatch.setattr(database, "SessionLocal", lambda: db_session)
+        monkeypatch.setattr(
+            FileStorageService, "save_result_overlay",
+            staticmethod(lambda **kwargs: overlays.append(kwargs["annotations"]) or seeded_homework.image_url),
+        )
+
+        result = EvaluationService.start(db_session, seeded_homework.id, provider=EvaluationProvider.qwen)
+        stored = EvaluationRepository.get_by_homework_id(db_session, seeded_homework.id)
+        assert result["provider"] == EvaluationProvider.qwen
+        assert overlays == [annotations]
+        assert stored is not None
+        assert stored.status == "finished"
+        assert stored.total_score == payload["total_score"]
+
 
 class TestGetEvaluation:
     def test_fails_when_not_found(self, db_session):

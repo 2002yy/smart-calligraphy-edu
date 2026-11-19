@@ -187,7 +187,11 @@ class EvaluationService:
                     if not _hw or not _task:
                         return
                     _payload = EvaluationService._build_qwen_result(_db, _hw, _task)
-                    _ov = FileStorageService.save_result_overlay(image_url=_hw.image_url, scores={k: _payload[k] for k in ("total_score", "structure_score", "center_score", "stroke_order_score")}, tags=_payload.get("issues", []), annotations=_payload.get("annotations", []))
+                    # 标注用于绘制回看图，不是 EvaluationRepository 的持久化字段。
+                    # 留在 **_payload 中会导致 update_evaluation 拒绝未知关键字，
+                    # 让实际成功的 Qwen 评测最终被标记为 failed。
+                    _annotations = _payload.pop("annotations", [])
+                    _ov = FileStorageService.save_result_overlay(image_url=_hw.image_url, scores={k: _payload[k] for k in ("total_score", "structure_score", "center_score", "stroke_order_score")}, tags=_payload.get("issues", []), annotations=_annotations)
                     if _ov != _hw.image_url:
                         _payload["compare_image_url"] = _ov
                     _ev = EvaluationRepository.get_by_homework_id(_db, homework_id)
