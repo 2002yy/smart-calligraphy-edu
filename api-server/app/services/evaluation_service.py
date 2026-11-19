@@ -167,7 +167,8 @@ class EvaluationService:
             evaluation = EvaluationRepository.update_evaluation(db, existing, status="finished", provider=resolved_provider.value, **payload) if existing else EvaluationRepository.create_evaluation(db, homework_id=homework_id, status="finished", provider=resolved_provider.value, **payload)
             homework.status = "evaluated"
             HomeworkRepository.update_homework(db, homework)
-            if not ReviewRepository.get_by_homework_id(db, homework_id):
+            # Mock 没有分析图片，不应自动占用教师正式待批阅队列。
+            if resolved_provider != EvaluationProvider.mock and not ReviewRepository.get_by_homework_id(db, homework_id):
                 ReviewRepository.create_review(db, homework_id=homework_id, teacher_id=task.created_by, comment=None, final_score=payload["total_score"], review_status="pending")
             return {"status": "finished", "homework_id": homework_id, "evaluation_id": evaluation.id, "provider": resolved_provider}
 

@@ -82,7 +82,7 @@ export const useTeacherStore = defineStore("teacher", () => {
     { label: "课程总数", value: courses.value.length },
     { label: "班级总数", value: classes.value.length },
     { label: "任务数量", value: tasks.value.length },
-    { label: "批阅记录", value: reviews.value.length }
+    { label: "正式批阅记录", value: reviews.value.filter((review) => review.evaluation_provider !== "mock").length }
   ]);
 
   function setNotice(nextMessage: string, type: NoticeType = "info") {
