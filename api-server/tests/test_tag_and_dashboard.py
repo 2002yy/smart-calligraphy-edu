@@ -99,6 +99,17 @@ class TestTagDashboardAccuracy:
                 }, headers={"Authorization": f"Bearer {stok}"})
                 hw_ids.append(hid)
 
+            # 此测试只验证真实评分的标签聚合公式；Mock 用来造固定数据，
+            # 明确将 fixture 标记为模拟的 Qwen 已完成结果。
+            db = SessionLocal()
+            try:
+                from app.repositories.evaluation_repository import EvaluationRepository
+                for hid in hw_ids:
+                    EvaluationRepository.get_by_homework_id(db, hid).provider = "qwen"
+                db.commit()
+            finally:
+                db.close()
+
             # 从实际 evaluation API 读标签，汇总期望计数
             expected: dict[str, int] = {}
             for hid in hw_ids:
@@ -164,6 +175,7 @@ class TestTagDashboardAccuracy:
             db = SessionLocal()
             try:
                 ev = EvaluationRepository.get_by_homework_id(db, hid)
+                ev.provider = "qwen"  # 标签白名单测试使用模拟真实来源的 fixture
                 tags = list(ev.issues_json or [])
                 tags.append("非法标签_IGNORE_ME")
                 tags.append("also_not_allowed_fake_tag")
@@ -310,11 +322,11 @@ class TestTagDashboardAccuracy:
             try:
                 EvaluationRepository.create_evaluation(
                     db, homework_id=haid, status="finished",
-                    total_score=7.0, issues=["重心不稳", "结构工整"],
+                    provider="qwen", total_score=7.0, issues=["重心不稳", "结构工整"],
                 )
                 EvaluationRepository.create_evaluation(
                     db, homework_id=hbid, status="finished",
-                    total_score=7.0, issues=["重心不稳", "结构工整"],
+                    provider="qwen", total_score=7.0, issues=["重心不稳", "结构工整"],
                 )
                 db.commit()
             finally:
@@ -381,6 +393,7 @@ class TestTagDashboardAccuracy:
 
             db = SessionLocal()
             try:
+                EvaluationRepository.get_by_homework_id(db, h1id).provider = "qwen"
                 EvaluationRepository.create_evaluation(
                     db, homework_id=h3id, status="processing",
                     total_score=0, issues=[],

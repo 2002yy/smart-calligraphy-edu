@@ -17,6 +17,7 @@ class ReportService:
 
         homework_list = HomeworkRepository.list_homework(db, student_id=student_id)
         evaluations = EvaluationRepository.list_by_homework_ids(db, [item.id for item in homework_list])
+        evaluations = [item for item in evaluations if EvaluationRepository.is_ai_finished(item)]
         scores = [item.total_score for item in evaluations]
         avg_score = round(sum(scores) / len(scores), 2) if scores else 0.0
 
@@ -38,6 +39,7 @@ class ReportService:
         task_ids = [item.id for item in tasks]
         homework_list = HomeworkRepository.list_homework(db, task_ids=task_ids) if task_ids else []
         evaluations = EvaluationRepository.list_by_homework_ids(db, [item.id for item in homework_list])
+        evaluations = [item for item in evaluations if EvaluationRepository.is_ai_finished(item)]
         scores = [item.total_score for item in evaluations]
         avg_score = round(sum(scores) / len(scores), 2) if scores else 0.0
 
@@ -62,6 +64,7 @@ class ReportService:
 
         homework_list = HomeworkRepository.list_homework(db, student_id=student_id)
         evaluations = EvaluationRepository.list_by_homework_ids(db, [item.id for item in homework_list])
+        evaluations = [item for item in evaluations if EvaluationRepository.is_ai_finished(item)]
 
         # 按 submitted_at 排序（升序）
         eval_map = {ev.homework_id: ev for ev in evaluations}
@@ -69,7 +72,7 @@ class ReportService:
         records = []
         for hw in sorted_hw:
             ev = eval_map.get(hw.id)
-            if ev and ev.status == "finished" and ev.issues_json:
+            if ev and ev.issues_json:
                 records.append({
                     "homework_id": hw.id,
                     "created_at": hw.submitted_at or hw.created_at,

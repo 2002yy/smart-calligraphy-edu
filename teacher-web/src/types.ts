@@ -67,6 +67,8 @@ export interface Review {
   comment?: string | null;
   final_score?: number | null;
   score?: number | null;
+  evaluation_provider?: "qwen" | "openai" | "mock" | null;
+  evaluation_status?: string | null;
   tags?: string[];
   advice?: string | null;
   compare_image_url?: string | null;

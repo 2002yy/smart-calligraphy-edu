@@ -55,6 +55,12 @@ async function main() {
       }).then(r => r.json()).then(d => d.data || []);
       const taskId = tasks[0]?.id;
       console.log(taskId ? `[OK]  任务列表，首个任务 ID=${taskId}` : "[WARN] 无任务");
+      const dashboardBefore = await fetch(`${API}/api/v1/dashboard/class/1`, {
+        headers: { Authorization: `Bearer ${th}` },
+      }).then(r => r.json()).then(d => d.data);
+      const growthBefore = await fetch(`${API}/api/v1/users/${sid}/growth`, {
+        headers: { Authorization: `Bearer ${sh}` },
+      }).then(r => r.json()).then(d => d.data);
 
       // 上传 + 提交 + Mock 评测
       if (taskId) {
@@ -94,7 +100,7 @@ async function main() {
             body: JSON.stringify({ homework_id: hwId, provider: "mock", force_refresh: true }),
           }).then(r => r.json()).then(d => d.data);
 
-          if (evalResp?.status === "finished") {
+          if (evalResp?.status === "finished" && evalResp.provider === "mock") {
             console.log(`[OK]  Mock 评测完成，provider=${evalResp.provider}`);
           } else {
             console.log("[FAIL] Mock 评测失败");
@@ -103,7 +109,7 @@ async function main() {
           const evalResult = await fetch(`${API}/api/v1/evaluation/${hwId}`, {
             headers: { Authorization: `Bearer ${sh}` },
           }).then(r => r.json()).then(d => d.data);
-          if (evalResult?.total_score > 0) {
+          if (evalResult?.total_score > 0 && evalResult.provider === "mock") {
             console.log(`[OK]  评测结果：总分 ${evalResult.total_score}/10，${evalResult.tags?.length ?? 0} 个标签`);
           } else {
             console.log("[FAIL] 评测结果缺失");
@@ -119,10 +125,16 @@ async function main() {
           const dash = await fetch(`${API}/api/v1/dashboard/class/1`, {
             headers: { Authorization: `Bearer ${th}` },
           }).then(r => r.json()).then(d => d.data);
-          if (dash?.homework_count > 0) {
-            console.log(`[OK]  教学看板：提交 ${dash.homework_count}，已评测 ${dash.evaluated_count}`);
+          const growthAfter = await fetch(`${API}/api/v1/users/${sid}/growth`, {
+            headers: { Authorization: `Bearer ${sh}` },
+          }).then(r => r.json()).then(d => d.data);
+          if (dash?.homework_count > (dashboardBefore?.homework_count ?? -1)
+              && dash.evaluated_count === dashboardBefore?.evaluated_count
+              && dash.avg_score === dashboardBefore?.avg_score
+              && growthAfter?.avg_score === growthBefore?.avg_score) {
+            console.log(`[OK]  Mock 作业已提交，教师看板与学生平均分均未混入演示成绩`);
           } else {
-            console.log("[WARN] 看板数据为空");
+            console.log("[FAIL] Mock 分数污染了真实教学统计，或作业提交未被统计");
           }
         }
       }
@@ -140,6 +152,10 @@ async function main() {
       await tp.waitForTimeout(2000);
       await tp.screenshot({ path: path.join(screenshotDir, "teacher-logged-in.png"), fullPage: false });
       console.log("[OK]  教师端登录并截图");
+      // API 统计排除 Mock 还不够：教师真实页面也必须明确标注演示来源。
+      await tp.goto(`${TEACHER}/reviews`, { waitUntil: "domcontentloaded", timeout: 15000 });
+      await tp.getByText("Mock 演示分数（非 AI）").first().waitFor({ timeout: 15000 });
+      console.log("[OK]  教师批阅页明确将 Mock 标为非 AI 评分");
     } catch (e) {
       console.log("[WARN] 教师端 UI 异常:", e.message?.slice(0, 60));
     } finally {

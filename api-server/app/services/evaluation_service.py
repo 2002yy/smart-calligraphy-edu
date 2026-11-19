@@ -48,6 +48,7 @@ class EvaluationService:
             "compare_image_url": evaluation.compare_image_url,
             "thinking_steps": evaluation.thinking_steps,
             "status": evaluation.status,
+            "provider": evaluation.provider,
             "created_at": evaluation.created_at,
             "calligraphy_images": _query_calligraphy(character) if character else [],
         }
@@ -152,7 +153,7 @@ class EvaluationService:
         existing = EvaluationRepository.get_by_homework_id(db, homework_id)
         resolved_provider = EvaluationService._resolve_provider(provider)
         if existing and not force_refresh:
-            return {"status": existing.status, "homework_id": homework_id, "evaluation_id": existing.id, "provider": resolved_provider}
+            return {"status": existing.status, "homework_id": homework_id, "evaluation_id": existing.id, "provider": existing.provider}
         task = TaskRepository.get_by_id(db, homework.task_id)
         if not task:
             raise HTTPException(status_code=404, detail="task not found")
@@ -163,7 +164,7 @@ class EvaluationService:
             ov = FileStorageService.save_result_overlay(image_url=homework.image_url, scores={k: payload[k] for k in ("total_score", "structure_score", "center_score", "stroke_order_score")}, tags=payload.get("issues", []), annotations=payload.get("annotations", []))
             if ov != homework.image_url:
                 payload["compare_image_url"] = ov
-            evaluation = EvaluationRepository.update_evaluation(db, existing, status="finished", **payload) if existing else EvaluationRepository.create_evaluation(db, homework_id=homework_id, status="finished", **payload)
+            evaluation = EvaluationRepository.update_evaluation(db, existing, status="finished", provider=resolved_provider.value, **payload) if existing else EvaluationRepository.create_evaluation(db, homework_id=homework_id, status="finished", provider=resolved_provider.value, **payload)
             homework.status = "evaluated"
             HomeworkRepository.update_homework(db, homework)
             if not ReviewRepository.get_by_homework_id(db, homework_id):
@@ -172,9 +173,9 @@ class EvaluationService:
 
         # 异步路径（Qwen）
         if existing:
-            evaluation = EvaluationRepository.update_evaluation(db, existing, status="processing", total_score=0)
+            evaluation = EvaluationRepository.update_evaluation(db, existing, status="processing", provider="qwen", total_score=0)
         else:
-            evaluation = EvaluationRepository.create_evaluation(db, homework_id=homework_id, status="processing")
+            evaluation = EvaluationRepository.create_evaluation(db, homework_id=homework_id, status="processing", provider="qwen")
 
         def _run():
             _db = None

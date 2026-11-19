@@ -21,7 +21,7 @@ class DashboardService:
         scored = [
             evaluation_map[item.id]
             for item in homework_list
-            if item.id in evaluation_map and evaluation_map[item.id].status == "finished"
+            if item.id in evaluation_map and EvaluationRepository.is_ai_finished(evaluation_map[item.id])
         ]
         score_values = [item.total_score for item in scored]
         avg_score = round(sum(score_values) / len(score_values), 2) if score_values else 0.0

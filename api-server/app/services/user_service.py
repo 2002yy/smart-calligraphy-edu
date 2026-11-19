@@ -31,6 +31,7 @@ class UserService:
 
         homework_list = HomeworkRepository.list_homework(db, student_id=user_id)
         evaluations = EvaluationRepository.list_by_homework_ids(db, [item.id for item in homework_list])
+        evaluations = [item for item in evaluations if EvaluationRepository.is_ai_finished(item)]
         scores = [item.total_score for item in evaluations]
         avg_score = round(sum(scores) / len(scores), 2) if scores else 0.0
 

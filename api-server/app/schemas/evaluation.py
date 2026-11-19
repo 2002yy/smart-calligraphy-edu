@@ -31,6 +31,7 @@ class EvaluationRead(BaseModel):
     compare_image_url: str | None = None
     thinking_steps: list[dict] | None = None
     status: str = "finished"
+    provider: EvaluationProvider | None = None
     created_at: datetime | None = None
     calligraphy_images: list[str] = []
 
@@ -76,7 +77,7 @@ class EvaluationStartRead(BaseModel):
     status: str
     homework_id: int
     evaluation_id: int
-    provider: EvaluationProvider
+    provider: EvaluationProvider | None
 
     model_config = ConfigDict(
         json_schema_extra={
