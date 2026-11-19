@@ -72,6 +72,7 @@ export interface Evaluation {
   compare_image_url?: string | null;
   thinking_steps?: ThinkingStep[] | null;
   status: string;
+  provider?: "qwen" | "openai" | "mock" | null;
   created_at?: string | null;
   calligraphy_images?: string[];
 }

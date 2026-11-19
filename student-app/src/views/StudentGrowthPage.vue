@@ -65,8 +65,9 @@ const recentIssues = computed(() => {
       <div class="metric-strip">
         <article class="metric-block accent" style="--i: 0">
           <span>平均得分</span>
-          <AnimatedCount :value="growth?.avg_score ?? 0" />
-          <small>基于历史评测结果动态计算。</small>
+          <AnimatedCount v-if="recentScores.length" :value="growth?.avg_score ?? 0" />
+          <strong v-else>—</strong>
+          <small>{{ recentScores.length ? "仅统计真实 AI 评分。" : "暂无真实 AI 评分；演示分数不计入。" }}</small>
         </article>
         <article class="metric-block" style="--i: 1">
           <span>参与班级数</span>
@@ -131,7 +132,7 @@ const recentIssues = computed(() => {
           </div>
           <div class="reading-line">
             <b>{{ evaluation?.total_score ?? "--" }}</b>
-            <span>总分</span>
+            <span>{{ evaluation?.provider === "mock" ? "Mock 演示分数（非 AI）" : evaluation && !evaluation.provider ? "来源未知的历史评分" : "总分" }}</span>
           </div>
           <div class="reading-line">
             <b>{{ evaluation?.issues?.join("、") || "暂无" }}</b>

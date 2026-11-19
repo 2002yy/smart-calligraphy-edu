@@ -52,8 +52,9 @@ function navigateToReviews(tag: string) {
       <div class="metric-strip">
         <article class="metric-block accent" style="--i: 0">
           <span>班级平均分</span>
-          <AnimatedCount :value="dashboard.avg_score" />
-          <small>班级整体书写表现的平均分。</small>
+          <AnimatedCount v-if="dashboard.evaluated_count > 0" :value="dashboard.avg_score" />
+          <strong v-else>—</strong>
+          <small>{{ dashboard.evaluated_count > 0 ? "仅统计真实 AI 评分。" : "暂无真实 AI 评分；演示分数不计入。" }}</small>
         </article>
         <article class="metric-block" style="--i: 1">
           <span>作业提交率</span>
@@ -66,9 +67,9 @@ function navigateToReviews(tag: string) {
           <small>学生提交到系统的作业总数。</small>
         </article>
         <article class="metric-block" style="--i: 3">
-          <span>已完成评测</span>
+          <span>真实 AI 评测数</span>
           <AnimatedCount :value="dashboard.evaluated_count" />
-          <small>已经完成智能评测的作业数量。</small>
+          <small>不含 Mock 和来源未知的历史结果。</small>
         </article>
       </div>
 
@@ -154,7 +155,7 @@ function navigateToReviews(tag: string) {
                 <span>已累计作业量</span>
               </div>
               <div class="reading-line">
-                <b>{{ report.avg_score }}</b>
+                <b>{{ report.evaluated_count > 0 ? report.avg_score : "—" }}</b>
                 <span>报告平均分</span>
               </div>
             </div>

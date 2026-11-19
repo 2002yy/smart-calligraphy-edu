@@ -60,8 +60,9 @@ const { user, loading, classes, tasks, growth, selectedTask, latestHomework, eva
         </article>
         <article class="metric-block" style="--i: 2">
           <span>平均得分</span>
-          <AnimatedCount :value="growth?.avg_score ?? 0" />
-          <small>根据历史评测结果动态更新。</small>
+          <AnimatedCount v-if="growth?.recent_scores?.length" :value="growth.avg_score" />
+          <strong v-else>—</strong>
+          <small>{{ growth?.recent_scores?.length ? "仅统计真实 AI 评分。" : "暂无真实 AI 评分；演示分数不计入。" }}</small>
         </article>
       </div>
 
@@ -99,7 +100,7 @@ const { user, loading, classes, tasks, growth, selectedTask, latestHomework, eva
           </div>
           <div class="reading-line">
             <b>{{ evaluation?.total_score ?? "--" }}</b>
-            <span>最近得分</span>
+            <span>{{ evaluation?.provider === "mock" ? "Mock 演示得分（非 AI）" : evaluation && !evaluation.provider ? "来源未知的得分" : "最近得分" }}</span>
           </div>
           <div class="reading-line">
             <b>{{ evaluation?.advice || "完成 AI 评测后将显示针对性建议" }}</b>
