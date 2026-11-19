@@ -159,7 +159,7 @@ async function main() {
       // 旧 Mock 记录仍可通过来源筛选查看，默认正式批阅列表应排除它们。
       await tp.goto(`${TEACHER}/reviews`, { waitUntil: "domcontentloaded", timeout: 15000 });
       await tp.getByText("评分来源").first().waitFor({ timeout: 15000 });
-      const defaultSource = await tp.getByRole("combobox").first().inputValue();
+      const defaultSource = await tp.getByRole("combobox", { name: "评分来源" }).inputValue();
       const mockLabelCount = await tp.getByText("Mock 演示分数（非 AI）").count();
       sourceFilterVerified = defaultSource === "official" && mockLabelCount === 0;
       if (sourceFilterVerified) console.log("[OK]  教师正式批阅默认排除 Mock 演示记录");
