@@ -107,35 +107,43 @@ class TestStartEvaluation:
         from app.services.file_storage_service import FileStorageService
         from sqlalchemy.orm import Session
 
-        class InlineThread:
+        pending_threads = []
+
+        class DeferredThread:
             def __init__(self, target, daemon):
                 self.target = target
 
             def start(self):
-                self.target()
+                pending_threads.append(self.target)
 
         annotations = [{"x1": 10, "y1": 20, "x2": 30, "y2": 40, "label": "结构偏移"}]
-        payload = EvaluationService._build_mock_result(seeded_homework.id, seeded_task)
+        homework_id = seeded_homework.id
+        image_url = seeded_homework.image_url
+        payload = EvaluationService._build_mock_result(homework_id, seeded_task)
         payload["annotations"] = annotations
         overlays = []
 
         monkeypatch.setattr(QwenEvaluationService, "is_configured", staticmethod(lambda: True))
         monkeypatch.setattr(EvaluationService, "_build_qwen_result", staticmethod(lambda *_: dict(payload)))
-        monkeypatch.setattr(module.threading, "Thread", InlineThread)
-        # 后台任务需使用独立 Session，不能关闭 start() 正在使用的会话。
+        monkeypatch.setattr(module.threading, "Thread", DeferredThread)
+        # 后台任务使用自己的 Session，模拟真实请求结束后才执行的时序。
         monkeypatch.setattr(database, "SessionLocal", lambda: Session(bind=db_session.get_bind()))
         monkeypatch.setattr(
             FileStorageService, "save_result_overlay",
-            staticmethod(lambda **kwargs: overlays.append(kwargs["annotations"]) or seeded_homework.image_url),
+            staticmethod(lambda **kwargs: overlays.append(kwargs["annotations"]) or image_url),
         )
 
-        result = EvaluationService.start(db_session, seeded_homework.id, provider=EvaluationProvider.qwen)
-        stored = EvaluationRepository.get_by_homework_id(db_session, seeded_homework.id)
+        result = EvaluationService.start(db_session, homework_id, provider=EvaluationProvider.qwen)
+        assert len(pending_threads) == 1
+        db_session.close()  # HTTP 请求返回，原 Session 关闭；后台任务此时才执行。
+        pending_threads.pop()()
+        with Session(bind=db_session.get_bind()) as verification_db:
+            stored = EvaluationRepository.get_by_homework_id(verification_db, homework_id)
+            assert stored is not None
+            assert stored.status == "finished"
+            assert stored.total_score == payload["total_score"]
         assert result["provider"] == EvaluationProvider.qwen
         assert overlays == [annotations]
-        assert stored is not None
-        assert stored.status == "finished"
-        assert stored.total_score == payload["total_score"]
 
 
 class TestGetEvaluation:

@@ -183,7 +183,8 @@ class EvaluationService:
                 _db = _SL()
                 try:
                     _hw = HomeworkRepository.get_by_id(_db, homework_id)
-                    _task = TaskRepository.get_by_id(_db, homework.task_id)
+                    # 请求结束后 homework 可能已脱离原 Session；后台仅访问自己的会话。
+                    _task = TaskRepository.get_by_id(_db, _hw.task_id) if _hw else None
                     if not _hw or not _task:
                         return
                     _payload = EvaluationService._build_qwen_result(_db, _hw, _task)
