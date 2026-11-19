@@ -6,6 +6,7 @@ from sqlalchemy import create_engine
 
 from app.models.homework import Homework
 from app.repositories import EvaluationRepository
+from app.repositories.review_repository import ReviewRepository
 from app.schemas.evaluation import EvaluationProvider, EvaluationStartRead
 from app.services.dashboard_service import DashboardService
 from app.services.evaluation_service import EvaluationService
@@ -76,8 +77,18 @@ def test_historical_unknown_provider_is_not_guessed(db_session, seeded_homework,
     assert EvaluationRepository.get_by_homework_id(db_session, seeded_homework.id).provider == "mock"
 
 
-def test_mock_source_is_visible_to_teacher_review(db_session, seeded_homework, seeded_task):
+def test_mock_does_not_create_teacher_pending_review(db_session, seeded_homework, seeded_task):
     EvaluationService.start(db_session, seeded_homework.id, provider=EvaluationProvider.mock)
+    assert ReviewRepository.get_by_homework_id(db_session, seeded_homework.id) is None
+    assert ReviewService.list_reviews(db_session, teacher_id=seeded_task.created_by) == []
+
+
+def test_existing_mock_review_keeps_source_for_audit(db_session, seeded_homework, seeded_task):
+    EvaluationService.start(db_session, seeded_homework.id, provider=EvaluationProvider.mock)
+    ReviewRepository.create_review(
+        db_session, homework_id=seeded_homework.id, teacher_id=seeded_task.created_by,
+        comment=None, final_score=None, review_status="pending",
+    )
     assert ReviewService.get_review(db_session, seeded_homework.id)["evaluation_provider"] == "mock"
     evaluation = EvaluationRepository.get_by_homework_id(db_session, seeded_homework.id)
     EvaluationRepository.update_evaluation(db_session, evaluation, status="processing", total_score=0)

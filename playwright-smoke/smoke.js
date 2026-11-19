@@ -115,11 +115,14 @@ async function main() {
             console.log("[FAIL] 评测结果缺失");
           }
 
-          // 教师端批阅回流
+          // 演示分数不应自动生成教师待批阅任务；保留历史记录不等于新建工作项。
           const reviews = await fetch(`${API}/api/v1/reviews?teacher_id=1`, {
             headers: { Authorization: `Bearer ${th}` },
           }).then(r => r.json()).then(d => d.data || []);
-          console.log(reviews.length > 0 ? `[OK]  教师端可见批阅记录 ${reviews.length} 条` : "[WARN] 教师端无批阅（首次需要新作业）");
+          if (reviews.some((review) => review.homework_id === hwId)) {
+            throw new Error("Mock 作业不应自动生成教师待批阅记录");
+          }
+          console.log("[OK]  Mock 演示未产生教师待批阅任务");
 
           // 看板数据
           const dash = await fetch(`${API}/api/v1/dashboard/class/1`, {
@@ -143,6 +146,7 @@ async function main() {
     // ── 2. 教师端 UI 冒烟 ──
     console.log("\n=== 2/4 教师端 UI ===");
     const tp = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    let sourceFilterVerified = false;
     try {
       await tp.goto(TEACHER, { waitUntil: "domcontentloaded", timeout: 15000 });
       await tp.waitForSelector("text=智慧书法", { timeout: 10000 });
@@ -152,15 +156,19 @@ async function main() {
       await tp.waitForTimeout(2000);
       await tp.screenshot({ path: path.join(screenshotDir, "teacher-logged-in.png"), fullPage: false });
       console.log("[OK]  教师端登录并截图");
-      // API 统计排除 Mock 还不够：教师真实页面也必须明确标注演示来源。
+      // 旧 Mock 记录仍可通过来源筛选查看，默认正式批阅列表应排除它们。
       await tp.goto(`${TEACHER}/reviews`, { waitUntil: "domcontentloaded", timeout: 15000 });
-      await tp.getByText("Mock 演示分数（非 AI）").first().waitFor({ timeout: 15000 });
-      console.log("[OK]  教师批阅页明确将 Mock 标为非 AI 评分");
+      await tp.getByText("评分来源").first().waitFor({ timeout: 15000 });
+      const defaultSource = await tp.getByRole("combobox", { name: "评分来源" }).inputValue();
+      const mockLabelCount = await tp.getByText("Mock 演示分数（非 AI）").count();
+      sourceFilterVerified = defaultSource === "official" && mockLabelCount === 0;
+      if (sourceFilterVerified) console.log("[OK]  教师正式批阅默认排除 Mock 演示记录");
     } catch (e) {
       console.log("[WARN] 教师端 UI 异常:", e.message?.slice(0, 60));
     } finally {
       await tp.close();
     }
+    if (!sourceFilterVerified) throw new Error("教师正式批阅来源筛选验证未通过");
 
     // ── 3. 学生端 UI 冒烟 ──
     console.log("\n=== 3/4 学生端 UI ===");

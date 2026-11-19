@@ -16,6 +16,7 @@ const route = useRoute();
 
 const statusFilter = ref<"all" | "reviewed" | "pending">("all");
 const aiFilter = ref<"all" | "with-ai" | "without-ai">("all");
+const sourceFilter = ref<"official" | "mock" | "all">("official");
 const tagFilter = ref<string | null>(null);
 const activeReviewId = ref<number | null>(null);
 
@@ -47,6 +48,9 @@ const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000"
 
 const filteredReviews = computed(() =>
   props.reviews.filter((review) => {
+    // 旧 Mock 批阅保留用于追溯，但默认不占教师正式工作列表。
+    const matchesSource = sourceFilter.value === "all"
+      || (sourceFilter.value === "mock" ? review.evaluation_provider === "mock" : review.evaluation_provider !== "mock");
     const matchesStatus =
       statusFilter.value === "all"
         ? true
@@ -67,7 +71,7 @@ const filteredReviews = computed(() =>
         ? true
         : hasAiResult && (review.tags ?? []).includes(tagFilter.value);
 
-    return matchesStatus && matchesAi && matchesTag;
+    return matchesSource && matchesStatus && matchesAi && matchesTag;
   })
 );
 
@@ -123,6 +127,14 @@ function formatDate(value?: string | null) {
     </CollapsibleIntro>
 
     <section class="filter-bar">
+      <label class="filter-item">
+        <span>评分来源</span>
+        <select v-model="sourceFilter">
+          <option value="official">正式批阅（不含 Mock）</option>
+          <option value="mock">Mock 演示记录</option>
+          <option value="all">全部来源</option>
+        </select>
+      </label>
       <label class="filter-item">
         <span>作业状态</span>
         <select v-model="statusFilter">
@@ -238,7 +250,7 @@ function formatDate(value?: string | null) {
       :title="reviews.length ? '筛选后暂无匹配记录' : '当前还没有批阅记录'"
       :description="
         reviews.length
-          ? '可以切换作业状态或 AI 结果筛选条件，查看不同阶段的教学反馈。'
+          ? '可以切换评分来源、作业状态或 AI 结果筛选条件，查看正式批阅和历史演示记录。'
           : '学生完成作业提交并生成评分结果后，教师端会在这里同步看到 AI 初评、教师复核和批阅上下文。'
       "
       compact
