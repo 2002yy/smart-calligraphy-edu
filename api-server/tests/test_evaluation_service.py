@@ -105,6 +105,7 @@ class TestStartEvaluation:
         from app.repositories import EvaluationRepository
         from app.services import evaluation_service as module
         from app.services.file_storage_service import FileStorageService
+        from sqlalchemy.orm import Session
 
         class InlineThread:
             def __init__(self, target, daemon):
@@ -121,7 +122,8 @@ class TestStartEvaluation:
         monkeypatch.setattr(QwenEvaluationService, "is_configured", staticmethod(lambda: True))
         monkeypatch.setattr(EvaluationService, "_build_qwen_result", staticmethod(lambda *_: dict(payload)))
         monkeypatch.setattr(module.threading, "Thread", InlineThread)
-        monkeypatch.setattr(database, "SessionLocal", lambda: db_session)
+        # 后台任务需使用独立 Session，不能关闭 start() 正在使用的会话。
+        monkeypatch.setattr(database, "SessionLocal", lambda: Session(bind=db_session.get_bind()))
         monkeypatch.setattr(
             FileStorageService, "save_result_overlay",
             staticmethod(lambda **kwargs: overlays.append(kwargs["annotations"]) or seeded_homework.image_url),
