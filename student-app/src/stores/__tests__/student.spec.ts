@@ -164,7 +164,8 @@ describe("useStudentStore", () => {
 
     it("rejects when no file is selected", async () => {
       const store = useStudentStore();
-      store.selectedTask = mockTasks[0] as any;
+      store.tasks = mockTasks;
+      store.selectedTaskId = 30;
       await store.submitHomework();
       expect(api.uploadHomework).not.toHaveBeenCalled();
     });
@@ -201,7 +202,63 @@ describe("useStudentStore", () => {
       await store.evaluateHomework("mock");
 
       expect(store.evaluation).toEqual(mockEvaluation);
+      expect(store.evaluationProvider).toBe("mock");
       expect(store.noticeType).toBe("success");
+    });
+  });
+
+  describe("submitAndEvaluate", () => {
+    function readyToSubmit() {
+      api.uploadHomework.mockResolvedValue(mockUploadResult);
+      api.submitHomework.mockResolvedValue(mockHomework);
+      api.getGrowth.mockResolvedValue(mockGrowth);
+      api.getTagTrend.mockResolvedValue(null);
+
+      const store = useStudentStore();
+      store.user = mockCurrentUser;
+      store.tasks = mockTasks;
+      store.selectedTaskId = 30;
+      store.selectedFile = new File(["fake"], "test.png", { type: "image/png" });
+      return store;
+    }
+
+    it("keeps the uploaded homework but never silently falls back to mock when Qwen fails", async () => {
+      const store = readyToSubmit();
+      api.startEvaluation.mockRejectedValue(new Error("Qwen 评测未启用"));
+
+      await store.submitAndEvaluate();
+
+      expect(api.startEvaluation).toHaveBeenCalledExactlyOnceWith(100, "qwen", true);
+      expect(store.latestHomework).toEqual(mockHomework);
+      expect(store.evaluation).toBeNull();
+      expect(store.submitStage).toBe("failed");
+      expect(store.noticeType).toBe("error");
+      expect(store.message).toContain("Qwen 评测未启用");
+    });
+
+    it("generates a clearly labeled mock score only when explicitly requested", async () => {
+      const store = readyToSubmit();
+      api.startEvaluation.mockResolvedValue({ status: "finished", homework_id: 100, evaluation_id: 1, provider: "mock" });
+      api.getEvaluation.mockResolvedValue(mockEvaluation);
+
+      await store.submitAndEvaluate("mock");
+
+      expect(api.startEvaluation).toHaveBeenCalledExactlyOnceWith(100, "mock", true);
+      expect(store.evaluationProvider).toBe("mock");
+      expect(store.submitStage).toBe("finished");
+      expect(store.message).toContain("非 AI 评分");
+    });
+
+    it("does not present a mock result as Qwen when the backend returns a different provider", async () => {
+      const store = readyToSubmit();
+      api.startEvaluation.mockResolvedValue({ status: "finished", homework_id: 100, evaluation_id: 1, provider: "mock" });
+
+      await store.submitAndEvaluate();
+
+      expect(api.startEvaluation).toHaveBeenCalledExactlyOnceWith(100, "qwen", true);
+      expect(api.getEvaluation).not.toHaveBeenCalled();
+      expect(store.submitStage).toBe("failed");
+      expect(store.message).toContain("来源与请求不一致");
     });
   });
 
@@ -228,12 +285,20 @@ describe("useStudentStore", () => {
   describe("updateSelectedFile", () => {
     it("sets the file and updates preview", () => {
       const store = useStudentStore();
+      store.latestHomework = mockHomework;
+      store.evaluation = mockEvaluation;
+      store.evaluationProvider = "mock";
+      store.submitStage = "finished";
       const file = new File(["fake"], "test.png", { type: "image/png" });
       store.updateSelectedFile(file);
 
       expect(store.selectedFile).toStrictEqual(file);
       expect(store.submitForm.selectedFileName).toBe("test.png");
       expect(store.previewUrl).toBeTruthy();
+      expect(store.latestHomework).toBeNull();
+      expect(store.evaluation).toBeNull();
+      expect(store.evaluationProvider).toBeNull();
+      expect(store.submitStage).toBe("idle");
     });
 
     it("clears file when null is passed", () => {

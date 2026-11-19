@@ -14,6 +14,11 @@ import type {
 } from "../types";
 
 type NoticeType = "info" | "success" | "error";
+type EvaluationSource = "mock" | "qwen" | "openai" | null;
+
+function sourceFromResponse(provider: string): EvaluationSource {
+  return provider === "mock" || provider === "qwen" || provider === "openai" ? provider : null;
+}
 
 function defaultSubmitForm(): TaskSubmitForm {
   return {
@@ -38,6 +43,7 @@ export const useStudentStore = defineStore("student", () => {
   const tagTrend = ref<StudentTagTrend | null>(null);
   const latestHomework = ref<Homework | null>(null);
   const evaluation = ref<Evaluation | null>(null);
+  const evaluationProvider = ref<EvaluationSource>(null);
   const selectedFile = ref<File | null>(null);
   const previewUrl = ref("");
 
@@ -130,6 +136,8 @@ export const useStudentStore = defineStore("student", () => {
     selectedClassId.value = classId;
     latestHomework.value = null;
     evaluation.value = null;
+    evaluationProvider.value = null;
+    submitStage.value = "idle";
 
     if (!classId) {
       tasks.value = [];
@@ -149,6 +157,10 @@ export const useStudentStore = defineStore("student", () => {
 
   function selectTask(taskId: number) {
     selectedTaskId.value = taskId;
+    latestHomework.value = null;
+    evaluation.value = null;
+    evaluationProvider.value = null;
+    submitStage.value = "idle";
     setNotice("已切换任务详情，可以继续查看说明或直接提交作业。", "info");
   }
 
@@ -197,42 +209,48 @@ export const useStudentStore = defineStore("student", () => {
       });
       submitForm.imageUrl = uploadResult.file_url;
       evaluation.value = null;
+      evaluationProvider.value = null;
       submitStage.value = "uploaded";
       growth.value = await studentApi.getGrowth(user.value.id);
       tagTrend.value = await studentApi.getTagTrend(user.value.id);
-      setNotice("作业提交成功，可以继续发起 AI 评测。", "success");
+      setNotice("作业提交成功；Qwen AI 可用时可继续发起真实评分。", "success");
       return latestHomework.value;
     } catch (error) {
+      submitStage.value = "failed";
       setNotice(error instanceof Error ? error.message : "作业提交失败。", "error");
       return null;
     }
   }
 
-  async function evaluateHomework(provider: "auto" | "mock" | "openai" | "qwen" = "auto") {
+  async function evaluateHomework(provider: "mock" | "openai" | "qwen" = "qwen") {
     if (!latestHomework.value || !user.value) {
       setNotice("请先提交作业，再发起评测。", "error");
       return;
     }
 
     submitStage.value = "evaluating";
+    evaluation.value = null;
+    evaluationProvider.value = null;
     if (provider === "openai") {
       setNotice("正在调用 OpenAI 生成评分结果，请稍候（此为旧版评测，建议使用 Qwen）。", "info");
+    } else if (provider === "mock") {
+      setNotice("正在生成 Mock 演示分数；不会分析上传图片，分数不代表真实书写水平。", "info");
     } else if (provider === "qwen") {
       setNotice("正在通过阿里云百炼 Qwen3.5-omni-plus 评测书法作品，请稍候。", "info");
-    } else {
-      setNotice("正在生成 AI 评测结果，请稍候。", "info");
     }
     try {
-      await studentApi.startEvaluation(latestHomework.value.id, provider, true);
+      const started = await studentApi.startEvaluation(latestHomework.value.id, provider, true);
+      evaluationProvider.value = sourceFromResponse(started.provider);
+      if (evaluationProvider.value !== provider) throw new Error("服务端评测来源与请求不一致，无法确认评分真实性。");
       evaluation.value = await waitEvaluationFinished(latestHomework.value.id);
       growth.value = await studentApi.getGrowth(user.value.id);
       tagTrend.value = await studentApi.getTagTrend(user.value.id);
       if (provider === "openai") {
         setNotice("OpenAI 评分完成，结果卡片已更新。（旧版）", "success");
+      } else if (provider === "mock") {
+        setNotice("Mock 演示分数已生成（非 AI 评分，不反映真实字迹质量）。", "success");
       } else if (provider === "qwen") {
         setNotice("Qwen 评测完成，结果卡片已更新。", "success");
-      } else {
-        setNotice("AI 评测完成，结果卡片已更新。", "success");
       }
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "AI 评测失败。", "error");
@@ -251,23 +269,24 @@ export const useStudentStore = defineStore("student", () => {
     throw new Error("评测超时，请稍后刷新查看结果");
   }
 
-  async function submitAndEvaluate() {
+  async function submitAndEvaluate(provider: "qwen" | "mock" = "qwen") {
     if (submitStage.value !== "idle") return;
     try {
       const homework = await submitHomework();
       if (!homework) { submitStage.value = "failed"; return; }
       submitStage.value = "evaluating";
-      let provider: "qwen" | "auto" = "qwen";
-      try { await studentApi.startEvaluation(homework.id, "qwen", true); } catch { provider = "auto"; await studentApi.startEvaluation(homework.id, "auto", true); }
+      const started = await studentApi.startEvaluation(homework.id, provider, true);
+      evaluationProvider.value = sourceFromResponse(started.provider);
+      if (evaluationProvider.value !== provider) throw new Error("服务端评测来源与请求不一致，无法确认评分真实性。");
       submitStage.value = "waiting";
       evaluation.value = await waitEvaluationFinished(homework.id);
       growth.value = await studentApi.getGrowth(user.value!.id);
       tagTrend.value = await studentApi.getTagTrend(user.value!.id);
       submitStage.value = "finished";
-      setNotice(provider === "qwen" ? "AI 评分已完成" : "AI 评测完成，结果卡片已更新。", "success");
+      setNotice(provider === "qwen" ? "Qwen AI 评分已完成" : "Mock 演示分数已生成（非 AI 评分，不反映真实字迹质量）。", "success");
     } catch (error) {
       submitStage.value = "failed";
-      setNotice(error instanceof Error ? error.message : "AI 评测失败。", "error");
+      setNotice(error instanceof Error ? `作业已提交，但评测未完成：${error.message}。可对最近一次作业重试。` : "作业已提交，但评测未完成。", "error");
     }
   }
   async function submitAndEvaluateWithOpenAI() {
@@ -289,13 +308,17 @@ export const useStudentStore = defineStore("student", () => {
     }
 
     selectedFile.value = file;
+    latestHomework.value = null;
+    evaluation.value = null;
+    evaluationProvider.value = null;
+    submitStage.value = "idle";
     submitForm.selectedFileName = file?.name || "";
     if (!file) {
       submitForm.imageUrl = "";
       return;
     }
     previewUrl.value = URL.createObjectURL(file);
-    setNotice(`已选择文件：${file.name}，现在可以提交作业或直接触发 Qwen AI 评分。`, "info");
+    setNotice(`已选择文件：${file.name}，现在可以提交作业；若 Qwen AI 已配置，也可直接发起真实评分。`, "info");
   }
 
   function clearSession() {
@@ -309,6 +332,8 @@ export const useStudentStore = defineStore("student", () => {
     tagTrend.value = null;
     latestHomework.value = null;
     evaluation.value = null;
+    evaluationProvider.value = null;
+    submitStage.value = "idle";
     selectedFile.value = null;
     if (previewUrl.value) {
       URL.revokeObjectURL(previewUrl.value);
@@ -337,6 +362,7 @@ export const useStudentStore = defineStore("student", () => {
     tagTrend,
     latestHomework,
     evaluation,
+    evaluationProvider,
     selectedFile,
     previewUrl,
     loading,
