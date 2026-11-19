@@ -30,6 +30,19 @@ function clearTagFilter() {
   tagFilter.value = null;
 }
 
+function hasRealAiScore(review: Review) {
+  return review.score != null && (review.evaluation_provider === "qwen" || review.evaluation_provider === "openai");
+}
+
+function scoreSourceLabel(review: Review) {
+  if (review.evaluation_status === "processing") return "评分处理中";
+  if (review.evaluation_status === "failed") return "评分失败";
+  if (review.score == null) return "暂无初评";
+  if (review.evaluation_provider === "mock") return "Mock 演示分数（非 AI）";
+  if (hasRealAiScore(review)) return "AI 初评";
+  return "来源未确认的历史评分";
+}
+
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
 
 const filteredReviews = computed(() =>
@@ -41,7 +54,7 @@ const filteredReviews = computed(() =>
           ? review.status === "reviewed"
           : review.status !== "reviewed";
 
-    const hasAiResult = review.score !== null && review.score !== undefined;
+    const hasAiResult = hasRealAiScore(review);
     const matchesAi =
       aiFilter.value === "all"
         ? true
@@ -52,7 +65,7 @@ const filteredReviews = computed(() =>
     const matchesTag =
       !tagFilter.value
         ? true
-        : (review.tags ?? []).includes(tagFilter.value);
+        : hasAiResult && (review.tags ?? []).includes(tagFilter.value);
 
     return matchesStatus && matchesAi && matchesTag;
   })
@@ -100,13 +113,13 @@ function formatDate(value?: string | null) {
     <div class="panel-head">
       <div>
         <p class="eyebrow">批阅复盘</p>
-        <h2>把 AI 初评、作业上下文和教师复核放进同一条批阅链路</h2>
+        <h2>区分评分来源，将作品上下文和教师复核放进同一条批阅链路</h2>
       </div>
       <span class="badge">{{ loading ? "同步中" : `${filteredReviews.length} 条记录` }}</span>
     </div>
 
     <CollapsibleIntro storageKey="intro-review">
-      查看学生提交的作业、AI 评分结果和教师评语，完成作业批阅与反馈。
+      查看作业、评分来源和教师评语；Mock 与历史来源不明的分数不应作为真实 AI 结论。
     </CollapsibleIntro>
 
     <section class="filter-bar">
@@ -168,11 +181,11 @@ function formatDate(value?: string | null) {
 
             <div class="score-pair">
               <div class="score-block">
-                <span>AI 初评</span>
+                <span>{{ scoreSourceLabel(review) }}</span>
                 <b>{{ review.score ?? "--" }}</b>
               </div>
               <div class="score-block accent">
-                <span>教师终评</span>
+                <span>{{ review.status === 'reviewed' ? '教师终评' : '待教师复核' }}</span>
                 <b>{{ review.final_score ?? "--" }}</b>
               </div>
             </div>
@@ -186,7 +199,7 @@ function formatDate(value?: string | null) {
 
           <div class="review-grid">
             <section class="review-copy">
-              <strong>AI 建议</strong>
+              <strong>初评建议（请核对来源）</strong>
               <p>{{ review.advice || "当前还没有同步到 AI 建议。" }}</p>
             </section>
 
@@ -277,14 +290,14 @@ function formatDate(value?: string | null) {
             </section>
 
             <section class="drawer-section">
-              <strong>AI 评分摘要</strong>
+              <strong>评分摘要</strong>
               <div class="drawer-metrics">
                 <article>
-                  <span>AI 初评</span>
+                  <span>{{ scoreSourceLabel(activeReview) }}</span>
                   <b>{{ activeReview.score ?? "--" }}</b>
                 </article>
                 <article>
-                  <span>教师终评</span>
+                  <span>{{ activeReview.status === 'reviewed' ? '教师终评' : '待教师复核' }}</span>
                   <b>{{ activeReview.final_score ?? "--" }}</b>
                 </article>
               </div>
@@ -296,7 +309,7 @@ function formatDate(value?: string | null) {
             </section>
 
             <section class="drawer-section" v-if="activeReview.thinking_steps?.length">
-              <strong>AI 思考过程</strong>
+              <strong>评分步骤（并非实时执行日志）</strong>
               <div class="thinking-steps-compact">
                 <div v-for="step in activeReview.thinking_steps" :key="step.step" class="ts-item">
                   <span class="ts-step">{{ step.step }}.</span>

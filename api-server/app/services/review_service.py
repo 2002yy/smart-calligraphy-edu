@@ -8,6 +8,7 @@ from app.schemas.review import ReviewCreate
 class ReviewService:
     @staticmethod
     def _serialize(review, evaluation=None, homework=None, task=None, student=None) -> dict:
+        finished = evaluation is not None and evaluation.status == "finished"
         return {
             "id": review.id,
             "homework_id": review.homework_id,
@@ -21,14 +22,16 @@ class ReviewService:
             "submitted_at": homework.submitted_at if homework else None,
             "comment": review.comment,
             "final_score": review.final_score,
-            "score": evaluation.total_score if evaluation else None,
-            "structure_score": evaluation.structure_score if evaluation else None,
-            "center_score": evaluation.center_score if evaluation else None,
-            "stroke_order_score": evaluation.stroke_order_score if evaluation else None,
-            "tags": evaluation.issues_json if evaluation and evaluation.issues_json else [],
-            "advice": evaluation.advice_text if evaluation else None,
-            "compare_image_url": evaluation.compare_image_url if evaluation else None,
-            "thinking_steps": evaluation.thinking_steps if evaluation else None,
+            "score": evaluation.total_score if finished else None,
+            "evaluation_provider": evaluation.provider if evaluation else None,
+            "evaluation_status": evaluation.status if evaluation else None,
+            "structure_score": evaluation.structure_score if finished else None,
+            "center_score": evaluation.center_score if finished else None,
+            "stroke_order_score": evaluation.stroke_order_score if finished else None,
+            "tags": evaluation.issues_json if finished and evaluation.issues_json else [],
+            "advice": evaluation.advice_text if finished else None,
+            "compare_image_url": evaluation.compare_image_url if finished else None,
+            "thinking_steps": evaluation.thinking_steps if finished else None,
             "status": review.review_status,
             "reviewed_at": review.reviewed_at,
         }

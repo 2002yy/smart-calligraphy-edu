@@ -36,6 +36,8 @@ class ReviewRead(BaseModel):
     comment: str | None = None
     final_score: float | None = None
     score: float | None = None
+    evaluation_provider: str | None = None
+    evaluation_status: str | None = None
     structure_score: float | None = None
     center_score: float | None = None
     stroke_order_score: float | None = None

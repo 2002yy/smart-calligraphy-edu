@@ -91,7 +91,7 @@ class HomeworkService:
             homework_ids = [item.id for item in items]
             evaluations = EvaluationRepository.list_by_homework_ids(db, homework_ids)
             # 只保留包含指定标签的 homework
-            matching_ids = {ev.homework_id for ev in evaluations if ev.issues_json and tag in ev.issues_json}
+            matching_ids = {ev.homework_id for ev in evaluations if EvaluationRepository.is_ai_finished(ev) and ev.issues_json and tag in ev.issues_json}
             items = [item for item in items if item.id in matching_ids]
 
         return [HomeworkService._serialize(item) for item in items]
