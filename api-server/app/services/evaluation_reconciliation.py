@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
+import hashlib
+import json
 
 import sqlalchemy as sa
 
@@ -32,6 +34,15 @@ def _serialize(value):
     if isinstance(value, dict):
         return {str(k): _serialize(v) for k, v in value.items()}
     raise TypeError(f"unsupported historical evaluation value: {type(value).__name__}")
+
+
+def _fingerprint(row) -> str:
+    """Stable full-row digest without leaking private evaluation content to JSON."""
+    canonical = json.dumps(
+        {str(key): _serialize(value) for key, value in row.items()},
+        ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False,
+    )
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def audit_duplicates(engine) -> dict:
@@ -61,9 +72,12 @@ def audit_duplicates(engine) -> dict:
                 "keep_id": None,  # Never choose the winner by score or timestamp.
                 "candidates": [
                     {
-                        k: _serialize(r[k]) for k in (
-                            "id", "status", "provider", "total_score", "updated_at"
-                        ) if k in r
+                        **{
+                            k: _serialize(r[k]) for k in (
+                                "id", "status", "provider", "total_score", "updated_at"
+                            ) if k in r
+                        },
+                        "fingerprint": _fingerprint(r),
                     } for r in rows
                 ],
             })
@@ -104,6 +118,13 @@ def reconcile_duplicates(engine, plan: dict) -> dict:
     if len(user_groups) != len(expected_ids):
         raise ValueError("duplicate groups changed; regenerate the audit")
     decisions = {}
+    expected_fingerprints = {
+        group["homework_id"]: {
+            candidate["id"]: candidate["fingerprint"]
+            for candidate in group["candidates"]
+        }
+        for group in existing
+    }
     for item in user_groups:
         hw = item.get("homework_id")
         ids = item.get("ids")
@@ -112,6 +133,14 @@ def reconcile_duplicates(engine, plan: dict) -> dict:
             raise ValueError(f"duplicate IDs changed or plan repeats homework {hw}")
         if type(keep) is not int or keep not in ids:
             raise ValueError(f"choose an existing keep_id for homework {hw}")
+        candidates = item.get("candidates")
+        if (
+            not isinstance(candidates, list)
+            or {c.get("id"): c.get("fingerprint") for c in candidates if isinstance(c, dict)}
+            != expected_fingerprints.get(hw)
+            or len(candidates) != len(ids)
+        ):
+            raise ValueError(f"homework {hw} record contents changed; regenerate audit")
         decisions[hw] = keep
     if set(decisions) != set(expected_ids):
         raise ValueError("duplicate groups changed; regenerate the audit")
@@ -139,6 +168,10 @@ def reconcile_duplicates(engine, plan: dict) -> dict:
             rows = grouped.get(hw, [])
             if tuple(r["id"] for r in rows) != expected_ids[hw]:
                 raise ValueError(f"homework {hw} changed while reconciling")
+            if {
+                r["id"]: _fingerprint(r) for r in rows
+            } != expected_fingerprints[hw]:
+                raise ValueError(f"homework {hw} content changed while reconciling")
             for row in rows:
                 if row["id"] == keep_id:
                     continue
