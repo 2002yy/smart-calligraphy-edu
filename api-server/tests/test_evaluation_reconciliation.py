@@ -131,11 +131,6 @@ def test_conflicting_archive_insert_rolls_back_all_live_changes(legacy_database)
 
 def test_reject_foreign_keys_to_evaluations_without_data_loss(legacy_database):
     engine, table = legacy_database
-    Table(
-        "dependent", MetaData(),
-        Column("id", Integer, primary_key=True),
-        Column("evaluation_id", Integer, ForeignKey("evaluations.id")),
-    )
     # Define the FK using a reflected table to allow SQLAlchemy to create it.
     metadata = MetaData()
     original = Table("evaluations", metadata, autoload_with=engine)
