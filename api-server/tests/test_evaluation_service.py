@@ -266,3 +266,72 @@ class TestGetEvaluationThinkingSteps:
         assert steps[0]["status"] == "done"
         assert steps[-1]["title"] == "综合评分"
         assert "score" in steps[-1]
+
+
+class TestStaleEvaluationRecovery:
+    def test_only_old_processing_is_recovered_once(self, db_session, seeded_homework, seeded_task, monkeypatch):
+        """A later startup must not touch completed jobs or active model requests."""
+        from datetime import timedelta
+
+        from sqlalchemy import update
+        from sqlalchemy.orm import Session
+
+        from app.core import bootstrap
+        from app.core.database import utc_now
+        from app.models.evaluation import Evaluation
+        from app.models.homework import Homework
+        from app.repositories import EvaluationRepository
+
+        others = [
+            Homework(
+                task_id=seeded_task.id,
+                student_id=seeded_homework.student_id,
+                image_url=f"/uploads/recovery-{i}.png",
+                status="submitted",
+            )
+            for i in range(3)
+        ]
+        db_session.add_all(others)
+        db_session.commit()
+
+        old_processing = EvaluationRepository.create_evaluation(
+            db_session, homework_id=seeded_homework.id, provider="qwen", status="processing"
+        )
+        fresh_processing = EvaluationRepository.create_evaluation(
+            db_session, homework_id=others[0].id, provider="qwen", status="processing"
+        )
+        finished = EvaluationRepository.create_evaluation(
+            db_session, homework_id=others[1].id, provider="qwen", status="finished",
+            total_score=9.5,
+        )
+        old_failed = EvaluationRepository.create_evaluation(
+            db_session, homework_id=others[2].id, provider="qwen", status="failed"
+        )
+
+        stale_time = utc_now() - timedelta(hours=2)
+        db_session.execute(
+            update(Evaluation)
+            .where(Evaluation.id.in_([old_processing.id, finished.id, old_failed.id]))
+            .values(updated_at=stale_time)
+        )
+        db_session.commit()
+
+        monkeypatch.setattr(
+            bootstrap, "SessionLocal", lambda: Session(bind=db_session.get_bind())
+        )
+
+        assert bootstrap.recover_stuck_evaluations() == 1
+        db_session.expire_all()
+        assert old_processing.status == "failed"
+        assert "中断" in old_processing.advice_text
+        assert old_processing.updated_at > stale_time
+        assert fresh_processing.status == "processing"
+        assert finished.status == "finished"
+        assert finished.total_score == 9.5
+        assert old_failed.status == "failed"
+        assert old_failed.updated_at == stale_time
+
+        assert bootstrap.recover_stuck_evaluations() == 0
+        db_session.expire_all()
+        assert fresh_processing.status == "processing"
+        assert finished.status == "finished"
