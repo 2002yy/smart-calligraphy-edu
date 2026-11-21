@@ -57,7 +57,17 @@ def _ids(engine, table):
 def test_audit_does_not_mutate_old_schema_or_guess_winner(legacy_database):
     engine, table = legacy_database
     plan = audit_duplicates(engine)
-    assert plan["groups"] == [{
+    assert all(
+        len(row["fingerprint"]) == 64 for row in plan["groups"][0]["candidates"]
+    )
+    summarized = [{
+        **group,
+        "candidates": [
+            {k: v for k, v in candidate.items() if k != "fingerprint"}
+            for candidate in group["candidates"]
+        ],
+    } for group in plan["groups"]]
+    assert summarized == [{
         "homework_id": 10,
         "ids": [1, 2],
         "keep_id": None,
@@ -143,5 +153,35 @@ def test_reject_foreign_keys_to_evaluations_without_data_loss(legacy_database):
     plan = audit_duplicates(engine)
     plan["groups"][0]["keep_id"] = 1
     with pytest.raises(RuntimeError, match="foreign key"):
+        reconcile_duplicates(engine, plan)
+    assert _ids(engine, table) == [1, 2, 3]
+
+
+def test_reconciliation_rejects_stale_score_even_if_ids_are_unchanged(legacy_database):
+    engine, table = legacy_database
+    plan = audit_duplicates(engine)
+    plan["groups"][0]["keep_id"] = 1
+    with engine.begin() as connection:
+        connection.execute(
+            table.update().where(table.c.id == 2).values(total_score=5.25)
+        )
+    with pytest.raises(ValueError, match="record contents changed"):
+        reconcile_duplicates(engine, plan)
+    assert _ids(engine, table) == [1, 2, 3]
+    assert ARCHIVE_TABLE not in inspect(engine).get_table_names()
+
+
+def test_reconciliation_rejects_stale_notes_without_exposing_them(legacy_database):
+    engine, table = legacy_database
+    plan = audit_duplicates(engine)
+    assert "old issue" not in str(plan)
+    assert "new issue" not in str(plan)
+    plan["groups"][0]["keep_id"] = 1
+    with engine.begin() as connection:
+        connection.execute(
+            table.update().where(table.c.id == 2)
+            .values(issues_json=["secret later revision"])
+        )
+    with pytest.raises(ValueError, match="record contents changed"):
         reconcile_duplicates(engine, plan)
     assert _ids(engine, table) == [1, 2, 3]
