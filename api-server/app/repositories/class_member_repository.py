@@ -11,6 +11,11 @@ class ClassMemberRepository:
         return list(db.scalars(stmt).all())
 
     @staticmethod
+    def list_by_student(db: Session, student_id: int) -> list[ClassMember]:
+        stmt = select(ClassMember).where(ClassMember.student_id == student_id).order_by(ClassMember.id.asc())
+        return list(db.scalars(stmt).all())
+
+    @staticmethod
     def get_member(db: Session, class_id: int, student_id: int) -> ClassMember | None:
         stmt = select(ClassMember).where(
             ClassMember.class_id == class_id,

@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import auth, calligraphy, classes, courses, dashboard, evaluation, homework, reports, reviews, tasks, users
+from app.api.routes import auth, calligraphy, classes, courses, dashboard, evaluation, homework, mobile, reports, reviews, tasks, users
 from app.core.bootstrap import bootstrap_database, recover_stuck_evaluations
 from app.core.config import settings
 from app.services.token_service import sign_image_path, verify_signed_path, verify_token
@@ -73,6 +73,7 @@ app.include_router(evaluation.router, prefix="/api/v1/evaluation", tags=["evalua
 app.include_router(reviews.router, prefix="/api/v1/reviews", tags=["reviews"])
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["dashboard"])
 app.include_router(reports.router, prefix="/api/v1/reports", tags=["reports"])
+app.include_router(mobile.router, prefix="/api/mobile", tags=["mobile"])
 
 
 @app.get("/")
