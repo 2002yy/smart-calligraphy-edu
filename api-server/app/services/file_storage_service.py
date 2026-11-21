@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+import re
+import tempfile
 from io import BytesIO
 from pathlib import Path
 from uuid import uuid4
@@ -88,6 +90,7 @@ class FileStorageService:
         scores: dict,
         tags: list[str],
         annotations: list[dict] | None = None,
+        attempt_id: str | None = None,
     ) -> str:
         """在原图上叠加评分信息和检测框标注，生成结果图。
 
@@ -96,10 +99,14 @@ class FileStorageService:
             scores: 评分字典 {total_score, structure_score, center_score, stroke_order_score}
             tags: 问题标签列表
             annotations: 可选，检测框标注列表，每项含 type/label/x1/y1/x2/y2/severity
+            attempt_id: 评测轮次 ID；传入时使用独立结果文件，不覆盖其他轮次
 
         Returns:
             结果图的 URL，失败则返回原图 URL
         """
+        if attempt_id is not None and not re.fullmatch(r"[0-9a-f]{32}", attempt_id):
+            raise ValueError("attempt_id must be a lowercase 32-character hexadecimal UUID")
+
         if Image is None or ImageDraw is None:
             return image_url
 
@@ -227,10 +234,25 @@ class FileStorageService:
                 tw2 = bbox[2] - bbox[0]
                 draw.text((w - tw2 - 16, h - bar_h + 50), tag_text, fill=(255, 200, 100), font=font_small)
 
-            # 保存为新文件
-            dst_name = f"{src_path.stem}_result.jpg"
+            # 每个评测轮次拥有自己的图片；成功提交数据库后才被引用。
+            # 临时文件与目标在同目录，避免部分写入对外可见。
+            suffix = f"_{attempt_id}" if attempt_id else ""
+            dst_name = f"{src_path.stem}_result{suffix}.jpg"
             dst_path = src_path.parent / dst_name
-            img.save(dst_path, "JPEG", quality=90, optimize=True)
+            tmp_path = None
+            try:
+                with tempfile.NamedTemporaryFile(
+                    mode="wb", prefix=f".{dst_name}.", suffix=".tmp",
+                    dir=src_path.parent, delete=False,
+                ) as stream:
+                    tmp_path = Path(stream.name)
+                    img.save(stream, "JPEG", quality=90, optimize=True)
+                    stream.flush()
+                    os.fsync(stream.fileno())
+                os.replace(tmp_path, dst_path)
+            finally:
+                if tmp_path is not None:
+                    tmp_path.unlink(missing_ok=True)
 
             url_dir = image_url.rsplit("/", 1)[0]
             return f"{url_dir}/{dst_name}"
