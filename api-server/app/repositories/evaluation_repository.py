@@ -1,6 +1,9 @@
-from sqlalchemy import select
+from datetime import datetime
+
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
+from app.core.database import utc_now
 from app.models.evaluation import Evaluation
 
 
@@ -11,6 +14,29 @@ class EvaluationRepository:
     def is_ai_finished(evaluation: Evaluation) -> bool:
         """只有明确的真实模型来源且完成的评分，才进入教学统计。"""
         return evaluation.status == "finished" and evaluation.provider in EvaluationRepository.REAL_AI_PROVIDERS
+
+    @staticmethod
+    def fail_stale_processing(db: Session, cutoff: datetime, message: str) -> int:
+        """Atomically fail stale processing rows; never rewrite a fresh result.
+
+        The predicate and transition execute in one SQL UPDATE. Startup may run
+        in several workers, but a recovered row is counted only once.
+        """
+        try:
+            result = db.execute(
+                update(Evaluation)
+                .where(
+                    Evaluation.status == "processing",
+                    Evaluation.updated_at < cutoff,
+                )
+                .values(status="failed", advice_text=message, updated_at=utc_now())
+                .execution_options(synchronize_session=False)
+            )
+            db.commit()
+            return result.rowcount or 0
+        except Exception:
+            db.rollback()
+            raise
 
     @staticmethod
     def get_by_homework_id(db: Session, homework_id: int) -> Evaluation | None:
