@@ -14,6 +14,8 @@ class Evaluation(Base):
     status: Mapped[str] = mapped_column(String(20), default="pending")
     # 历史记录没有可信来源，必须保留 NULL，不可默认成真实 AI。
     provider: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    # Every new evaluation attempt owns a fresh token. Legacy rows stay NULL.
+    attempt_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
     total_score: Mapped[float] = mapped_column(default=0)
     structure_score: Mapped[float] = mapped_column(default=0)
     center_score: Mapped[float] = mapped_column(default=0)

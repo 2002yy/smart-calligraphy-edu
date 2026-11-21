@@ -1,6 +1,9 @@
 import sqlite3
 import threading
+from dataclasses import dataclass
+from functools import partial
 from pathlib import Path
+from uuid import uuid4
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
@@ -11,6 +14,16 @@ from app.schemas.evaluation import EvaluationProvider
 from app.services.file_storage_service import FileStorageService
 from app.services.openai_evaluation_service import OpenAIEvaluationService  # DEPRECATED
 from app.services.qwen_evaluation_service import QwenEvaluationService
+from app.models.review import Review
+
+
+@dataclass(frozen=True)
+class QwenAttemptContext:
+    """The only state passed from an HTTP request to its background worker."""
+
+    homework_id: int
+    evaluation_id: int
+    attempt_id: str
 
 
 def _query_calligraphy(character: str, top_k: int = 6) -> list[str]:
@@ -158,13 +171,16 @@ class EvaluationService:
         if not task:
             raise HTTPException(status_code=404, detail="task not found")
 
+        # Refresh invalidates any older Qwen worker once the new result commits.
+        attempt_id = uuid4().hex
+
         # 同步路径（Mock/OpenAI）
         if resolved_provider != EvaluationProvider.qwen:
             payload = EvaluationService._build_openai_result(db, homework, task) if resolved_provider == EvaluationProvider.openai else EvaluationService._build_mock_result(homework_id, task, image_url=homework.image_url)
             ov = FileStorageService.save_result_overlay(image_url=homework.image_url, scores={k: payload[k] for k in ("total_score", "structure_score", "center_score", "stroke_order_score")}, tags=payload.get("issues", []), annotations=payload.get("annotations", []))
             if ov != homework.image_url:
                 payload["compare_image_url"] = ov
-            evaluation = EvaluationRepository.update_evaluation(db, existing, status="finished", provider=resolved_provider.value, **payload) if existing else EvaluationRepository.create_evaluation(db, homework_id=homework_id, status="finished", provider=resolved_provider.value, **payload)
+            evaluation = EvaluationRepository.update_evaluation(db, existing, status="finished", provider=resolved_provider.value, attempt_id=attempt_id, **payload) if existing else EvaluationRepository.create_evaluation(db, homework_id=homework_id, status="finished", provider=resolved_provider.value, attempt_id=attempt_id, **payload)
             homework.status = "evaluated"
             HomeworkRepository.update_homework(db, homework)
             # Mock 没有分析图片，不应自动占用教师正式待批阅队列。
@@ -172,55 +188,107 @@ class EvaluationService:
                 ReviewRepository.create_review(db, homework_id=homework_id, teacher_id=task.created_by, comment=None, final_score=payload["total_score"], review_status="pending")
             return {"status": "finished", "homework_id": homework_id, "evaluation_id": evaluation.id, "provider": resolved_provider}
 
-        # 异步路径（Qwen）
+        # 异步路径（Qwen）。先提交本轮身份，再让独立线程工作。
         if existing:
-            evaluation = EvaluationRepository.update_evaluation(db, existing, status="processing", provider="qwen", total_score=0)
+            evaluation = EvaluationRepository.update_evaluation(
+                db, existing, status="processing", provider="qwen",
+                attempt_id=attempt_id, total_score=0,
+            )
         else:
-            evaluation = EvaluationRepository.create_evaluation(db, homework_id=homework_id, status="processing", provider="qwen")
+            evaluation = EvaluationRepository.create_evaluation(
+                db, homework_id=homework_id, status="processing",
+                provider="qwen", attempt_id=attempt_id,
+            )
+        context = QwenAttemptContext(
+            homework_id=homework_id, evaluation_id=evaluation.id, attempt_id=attempt_id,
+        )
+        threading.Thread(
+            target=partial(EvaluationService._run_qwen_attempt, context),
+            daemon=True,
+        ).start()
+        return {
+            "status": "processing", "homework_id": homework_id,
+            "evaluation_id": evaluation.id, "provider": resolved_provider,
+        }
 
-        def _run():
-            _db = None
+    @staticmethod
+    def _run_qwen_attempt(context: QwenAttemptContext) -> None:
+        """Call Qwen for one persisted attempt; only its current token may commit.
+
+        The request Session/ORM objects must never cross into this worker.
+        Success, homework completion and review insertion share one transaction.
+        """
+        from app.core.database import SessionLocal
+
+        db = SessionLocal()
+        try:
+            if not EvaluationRepository.is_processing_attempt(
+                db, context.evaluation_id, context.attempt_id,
+            ):
+                return  # superseded before the model call: do not spend API tokens
+
+            homework = HomeworkRepository.get_by_id(db, context.homework_id)
+            task = TaskRepository.get_by_id(db, homework.task_id) if homework else None
+            if not homework or not task:
+                raise ValueError("Qwen evaluation homework or task no longer exists")
+
+            payload = EvaluationService._build_qwen_result(db, homework, task)
+            # Non-persistent annotations are only for the display overlay.
+            annotations = payload.pop("annotations", [])
+            # Avoid rendering images for attempts that are already obsolete.
+            # The final conditional UPDATE remains the publication authority.
+            db.rollback()
+            if not EvaluationRepository.is_processing_attempt(
+                db, context.evaluation_id, context.attempt_id,
+            ):
+                return
+            overlay = FileStorageService.save_result_overlay(
+                image_url=homework.image_url,
+                scores={
+                    key: payload[key] for key in (
+                        "total_score", "structure_score",
+                        "center_score", "stroke_order_score",
+                    )
+                },
+                tags=payload.get("issues", []),
+                annotations=annotations,
+            )
+            if overlay != homework.image_url:
+                payload["compare_image_url"] = overlay
+
+            # This UPDATE acquires database write authority, then the rest of
+            # the publication is committed atomically with it.
+            if not EvaluationRepository.stage_attempt_result(
+                db, context.evaluation_id, context.attempt_id, payload,
+            ):
+                db.rollback()
+                return
+            homework.status = "evaluated"
+            db.add(homework)
+            if not ReviewRepository.get_by_homework_id(db, context.homework_id):
+                db.add(Review(
+                    homework_id=context.homework_id,
+                    teacher_id=task.created_by,
+                    comment=None,
+                    final_score=payload["total_score"],
+                    review_status="pending",
+                ))
+            db.commit()
+        except Exception:
+            import traceback
+
+            traceback.print_exc()
+            db.rollback()
             try:
-                from app.core.database import SessionLocal as _SL
-                _db = _SL()
-                try:
-                    _hw = HomeworkRepository.get_by_id(_db, homework_id)
-                    # 请求结束后 homework 可能已脱离原 Session；后台仅访问自己的会话。
-                    _task = TaskRepository.get_by_id(_db, _hw.task_id) if _hw else None
-                    if not _hw or not _task:
-                        return
-                    _payload = EvaluationService._build_qwen_result(_db, _hw, _task)
-                    # 标注用于绘制回看图，不是 EvaluationRepository 的持久化字段。
-                    # 留在 **_payload 中会导致 update_evaluation 拒绝未知关键字，
-                    # 让实际成功的 Qwen 评测最终被标记为 failed。
-                    _annotations = _payload.pop("annotations", [])
-                    _ov = FileStorageService.save_result_overlay(image_url=_hw.image_url, scores={k: _payload[k] for k in ("total_score", "structure_score", "center_score", "stroke_order_score")}, tags=_payload.get("issues", []), annotations=_annotations)
-                    if _ov != _hw.image_url:
-                        _payload["compare_image_url"] = _ov
-                    _ev = EvaluationRepository.get_by_homework_id(_db, homework_id)
-                    if _ev:
-                        EvaluationRepository.update_evaluation(_db, _ev, status="finished", **_payload)
-                        _hw.status = "evaluated"
-                        HomeworkRepository.update_homework(_db, _hw)
-                        if not ReviewRepository.get_by_homework_id(_db, homework_id):
-                            ReviewRepository.create_review(_db, homework_id=homework_id, teacher_id=_task.created_by, comment=None, final_score=_payload["total_score"], review_status="pending")
-                        _db.commit()
-                finally:
-                    if _db is not None:
-                        _db.close()
+                EvaluationRepository.fail_attempt(
+                    db, context.evaluation_id, context.attempt_id,
+                    "AI 评测异常，请稍后重试或切换 Mock 模式。",
+                )
             except Exception:
-                import traceback; traceback.print_exc()
-                if _db is not None:
-                    try:
-                        _ev2 = EvaluationRepository.get_by_homework_id(_db, homework_id)
-                        if _ev2:
-                            EvaluationRepository.update_evaluation(_db, _ev2, status="failed", advice_text="AI 评测异常，请稍后重试或切换 Mock 模式。")
-                            _db.commit()
-                    except Exception:
-                        pass
-
-        threading.Thread(target=_run, daemon=True).start()
-        return {"status": "processing", "homework_id": homework_id, "evaluation_id": evaluation.id, "provider": resolved_provider}
+                db.rollback()
+                traceback.print_exc()
+        finally:
+            db.close()
 
     @staticmethod
     def get_providers() -> dict:

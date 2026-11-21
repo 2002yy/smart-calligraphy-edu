@@ -12,6 +12,30 @@ from app.services.evaluation_service import EvaluationService
 from app.services.qwen_evaluation_service import QwenEvaluationService
 
 
+@pytest.fixture
+def deferred_qwen(monkeypatch, db_session):
+    """One shared test clock: queue threads and bind their own DB Sessions."""
+    from sqlalchemy.orm import Session
+
+    from app.core import database
+    from app.services import evaluation_service as module
+
+    callbacks = []
+
+    class DeferredThread:
+        def __init__(self, target, daemon):
+            assert daemon is True
+            self.target = target
+
+        def start(self):
+            callbacks.append(self.target)
+
+    monkeypatch.setattr(QwenEvaluationService, "is_configured", staticmethod(lambda: True))
+    monkeypatch.setattr(module.threading, "Thread", DeferredThread)
+    monkeypatch.setattr(database, "SessionLocal", lambda: Session(bind=db_session.get_bind()))
+    return callbacks
+
+
 class TestBuildMockResult:
     """Verify the mock scoring formula produces sensible scores."""
 
@@ -98,23 +122,12 @@ class TestStartEvaluation:
         assert detail["total_score"] > 0
 
     def test_qwen_result_with_annotations_is_persisted_as_finished(
-        self, db_session, seeded_homework, seeded_task, monkeypatch
+        self, db_session, seeded_homework, seeded_task, monkeypatch, deferred_qwen
     ):
         """真实 Qwen 的 payload 含 annotations；图层消费后不能传入 Repository。"""
-        from app.core import database
         from app.repositories import EvaluationRepository
-        from app.services import evaluation_service as module
         from app.services.file_storage_service import FileStorageService
         from sqlalchemy.orm import Session
-
-        pending_threads = []
-
-        class DeferredThread:
-            def __init__(self, target, daemon):
-                self.target = target
-
-            def start(self):
-                pending_threads.append(self.target)
 
         annotations = [{"x1": 10, "y1": 20, "x2": 30, "y2": 40, "label": "结构偏移"}]
         homework_id = seeded_homework.id
@@ -123,20 +136,16 @@ class TestStartEvaluation:
         payload["annotations"] = annotations
         overlays = []
 
-        monkeypatch.setattr(QwenEvaluationService, "is_configured", staticmethod(lambda: True))
         monkeypatch.setattr(EvaluationService, "_build_qwen_result", staticmethod(lambda *_: dict(payload)))
-        monkeypatch.setattr(module.threading, "Thread", DeferredThread)
-        # 后台任务使用自己的 Session，模拟真实请求结束后才执行的时序。
-        monkeypatch.setattr(database, "SessionLocal", lambda: Session(bind=db_session.get_bind()))
         monkeypatch.setattr(
             FileStorageService, "save_result_overlay",
             staticmethod(lambda **kwargs: overlays.append(kwargs["annotations"]) or image_url),
         )
 
         result = EvaluationService.start(db_session, homework_id, provider=EvaluationProvider.qwen)
-        assert len(pending_threads) == 1
+        assert len(deferred_qwen) == 1
         db_session.close()  # HTTP 请求返回，原 Session 关闭；后台任务此时才执行。
-        pending_threads.pop()()
+        deferred_qwen.pop()()
         with Session(bind=db_session.get_bind()) as verification_db:
             stored = EvaluationRepository.get_by_homework_id(verification_db, homework_id)
             assert stored is not None
@@ -144,6 +153,98 @@ class TestStartEvaluation:
             assert stored.total_score == payload["total_score"]
         assert result["provider"] == EvaluationProvider.qwen
         assert overlays == [annotations]
+
+
+    def test_superseded_attempt_cannot_publish_or_fail_newer_result(
+        self, db_session, seeded_homework, seeded_task, monkeypatch, deferred_qwen
+    ):
+        from app.repositories import EvaluationRepository, ReviewRepository
+        from app.services.file_storage_service import FileStorageService
+
+        homework_id = seeded_homework.id
+        old = EvaluationService.start(db_session, homework_id, provider=EvaluationProvider.qwen)
+        from app.models.evaluation import Evaluation
+        old_token = db_session.get(Evaluation, old["evaluation_id"]).attempt_id
+        newer = EvaluationService.start(
+            db_session, homework_id, provider=EvaluationProvider.qwen, force_refresh=True,
+        )
+        assert old["evaluation_id"] == newer["evaluation_id"]
+        db_session.expire_all()
+        current_token = db_session.get(Evaluation, newer["evaluation_id"]).attempt_id
+        assert current_token and old_token != current_token
+
+        called = []
+        payload = EvaluationService._build_mock_result(homework_id, seeded_task)
+        monkeypatch.setattr(EvaluationService, "_build_qwen_result",
+                            staticmethod(lambda *_: called.append("model") or dict(payload)))
+        monkeypatch.setattr(FileStorageService, "save_result_overlay",
+                            staticmethod(lambda **_: seeded_homework.image_url))
+
+        assert len(deferred_qwen) == 2
+        deferred_qwen.pop(0)()  # old queue item is stale before its API request
+        assert called == []
+        assert not EvaluationRepository.fail_attempt(
+            db_session, old["evaluation_id"], old_token, "old worker failed"
+        )
+        deferred_qwen.pop(0)()  # latest attempt owns the result
+        db_session.expire_all()
+        stored = EvaluationRepository.get_by_homework_id(db_session, homework_id)
+        assert called == ["model"]
+        assert stored.status == "finished"
+        assert stored.attempt_id == current_token
+        assert stored.total_score == payload["total_score"]
+        assert ReviewRepository.get_by_homework_id(db_session, homework_id) is not None
+        assert not EvaluationRepository.fail_attempt(
+            db_session, old["evaluation_id"], old_token, "late worker failed"
+        )
+        db_session.expire_all()
+        assert stored.status == "finished"
+
+    def test_refresh_during_overlay_rejects_old_completion(
+        self, db_session, seeded_homework, seeded_task, monkeypatch, deferred_qwen
+    ):
+        """Refresh in the window after model response must defeat old CAS."""
+        from app.models.evaluation import Evaluation
+        from app.repositories import EvaluationRepository
+        from app.services.file_storage_service import FileStorageService
+
+        homework_id = seeded_homework.id
+        first = EvaluationService.start(db_session, homework_id, provider=EvaluationProvider.qwen)
+        old_token = db_session.get(Evaluation, first["evaluation_id"]).attempt_id
+        scores = [4.0, 9.0]
+        def build_result(*_):
+            payload = EvaluationService._build_mock_result(homework_id, seeded_task)
+            value = scores.pop(0)
+            payload.update(total_score=value, structure_score=value,
+                           center_score=value, stroke_order_score=value)
+            return payload
+
+        refreshed = False
+
+        def overlay(**_):
+            nonlocal refreshed
+            if not refreshed:
+                refreshed = True
+                EvaluationService.start(
+                    db_session, homework_id,
+                    provider=EvaluationProvider.qwen, force_refresh=True,
+                )
+            return seeded_homework.image_url
+
+        monkeypatch.setattr(EvaluationService, "_build_qwen_result", staticmethod(build_result))
+        monkeypatch.setattr(FileStorageService, "save_result_overlay", staticmethod(overlay))
+        deferred_qwen.pop(0)()
+        db_session.expire_all()
+        pending = EvaluationRepository.get_by_homework_id(db_session, homework_id)
+        assert pending.status == "processing"
+        assert pending.attempt_id != old_token
+        assert len(deferred_qwen) == 1
+
+        deferred_qwen.pop(0)()
+        db_session.expire_all()
+        finished = EvaluationRepository.get_by_homework_id(db_session, homework_id)
+        assert finished.status == "finished"
+        assert finished.total_score == 9.0
 
 
 class TestGetEvaluation:
