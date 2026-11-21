@@ -10,33 +10,26 @@ from app.core.database import SessionLocal, init_db
 from app.models.class_member import ClassMember
 from app.models.classroom import Classroom
 from app.models.course import Course
-from app.models.evaluation import Evaluation
+from app.repositories.evaluation_repository import EvaluationRepository
 from app.models.task import Task
 from app.models.task_character import TaskCharacter
 from app.models.user import User
 
 
-def recover_stuck_evaluations():
-    """启动时将超过 30 分钟仍为 processing 的评测标记为 failed。
+def recover_stuck_evaluations() -> int:
+    """Fail only old processing attempts, using a conditional database update.
 
-    Qwen 异步线程在服务重启后会中断，卡住的 processing 记录会永远卡住。
-    此函数确保这些记录在下次启动时被清理。
+    A SELECT followed by mutating cached ORM objects can clobber a completion
+    committed by another worker between the read and the write. The status and
+    age predicates must be checked by the same UPDATE statement that changes
+    the status. This is recovery, not automatic model re-execution or billing.
     """
     db = SessionLocal()
     try:
         cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(minutes=30)
-        stuck = db.scalars(
-            select(Evaluation).where(
-                Evaluation.status == "processing",
-                Evaluation.updated_at < cutoff,
-            )
-        ).all()
-        for ev in stuck:
-            ev.status = "failed"
-            ev.advice_text = "评测因服务重启中断，请重新提交评测。"
-        if stuck:
-            db.commit()
-        # 不打印日志——pytest 抓取 stdout 可能误报
+        return EvaluationRepository.fail_stale_processing(
+            db, cutoff, "评测超时或因服务重启中断，请重新提交评测。"
+        )
     finally:
         db.close()
 
