@@ -183,10 +183,9 @@ class TestStartEvaluation:
         assert len(deferred_qwen) == 2
         deferred_qwen.pop(0)()  # old queue item is stale before its API request
         assert called == []
-        with pytest.raises(AssertionError):
-            assert EvaluationRepository.fail_attempt(
-                db_session, old["evaluation_id"], old_token, "old worker failed"
-            )
+        assert not EvaluationRepository.fail_attempt(
+            db_session, old["evaluation_id"], old_token, "old worker failed"
+        )
         deferred_qwen.pop(0)()  # latest attempt owns the result
         db_session.expire_all()
         stored = EvaluationRepository.get_by_homework_id(db_session, homework_id)
@@ -220,8 +219,12 @@ class TestStartEvaluation:
                            center_score=value, stroke_order_score=value)
             return payload
 
+        refreshed = False
+
         def overlay(**_):
-            if len(deferred_qwen) == 0:
+            nonlocal refreshed
+            if not refreshed:
+                refreshed = True
                 EvaluationService.start(
                     db_session, homework_id,
                     provider=EvaluationProvider.qwen, force_refresh=True,
