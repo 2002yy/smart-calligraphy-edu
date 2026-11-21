@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, JSON, String, Text
+from sqlalchemy import DateTime, ForeignKey, Index, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base, utc_now
@@ -8,6 +8,9 @@ from app.core.database import Base, utc_now
 
 class Evaluation(Base):
     __tablename__ = "evaluations"
+    __table_args__ = (
+        Index("uq_evaluations_homework_id", "homework_id", unique=True),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     homework_id: Mapped[int] = mapped_column(ForeignKey("homework.id"), nullable=False)
