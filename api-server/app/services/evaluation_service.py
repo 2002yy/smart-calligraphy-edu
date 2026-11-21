@@ -6,6 +6,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from fastapi import HTTPException
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -159,6 +160,26 @@ class EvaluationService:
         return {"total_score": rounded_score, "structure_score": rounded_score, "center_score": rounded_score, "stroke_order_score": rounded_score, "issues": result.tags, "advice_text": result.advice, "compare_image_url": homework.image_url, "thinking_steps": thinking_steps}
 
     @staticmethod
+    def _on_concurrent_first_start(
+        db: Session, homework_id: int, provider: EvaluationProvider,
+        force_refresh: bool,
+    ) -> dict:
+        """Resolve the unique-key loser without starting a duplicate model call."""
+        db.rollback()
+        winner = EvaluationRepository.get_by_homework_id(db, homework_id)
+        if winner is None:
+            raise RuntimeError("evaluation insert failed without an existing owner")
+        if force_refresh:
+            # Caller explicitly requested replacement, not idempotent reuse.
+            return EvaluationService.start(
+                db, homework_id, provider=provider, force_refresh=True,
+            )
+        return {
+            "status": winner.status, "homework_id": homework_id,
+            "evaluation_id": winner.id, "provider": winner.provider,
+        }
+
+    @staticmethod
     def start(db: Session, homework_id: int, provider: EvaluationProvider = EvaluationProvider.auto, force_refresh: bool = False) -> dict:
         homework = HomeworkRepository.get_by_id(db, homework_id)
         if not homework:
@@ -177,10 +198,37 @@ class EvaluationService:
         # 同步路径（Mock/OpenAI）
         if resolved_provider != EvaluationProvider.qwen:
             payload = EvaluationService._build_openai_result(db, homework, task) if resolved_provider == EvaluationProvider.openai else EvaluationService._build_mock_result(homework_id, task, image_url=homework.image_url)
-            ov = FileStorageService.save_result_overlay(image_url=homework.image_url, scores={k: payload[k] for k in ("total_score", "structure_score", "center_score", "stroke_order_score")}, tags=payload.get("issues", []), annotations=payload.get("annotations", []))
+            ov = FileStorageService.save_result_overlay(
+                image_url=homework.image_url,
+                scores={k: payload[k] for k in (
+                    "total_score", "structure_score", "center_score",
+                    "stroke_order_score",
+                )},
+                tags=payload.get("issues", []),
+                annotations=payload.get("annotations", []),
+                attempt_id=attempt_id,
+            )
             if ov != homework.image_url:
                 payload["compare_image_url"] = ov
-            evaluation = EvaluationRepository.update_evaluation(db, existing, status="finished", provider=resolved_provider.value, attempt_id=attempt_id, **payload) if existing else EvaluationRepository.create_evaluation(db, homework_id=homework_id, status="finished", provider=resolved_provider.value, attempt_id=attempt_id, **payload)
+            try:
+                evaluation = (
+                    EvaluationRepository.update_evaluation(
+                        db, existing, status="finished",
+                        provider=resolved_provider.value, attempt_id=attempt_id,
+                        **payload,
+                    )
+                    if existing else EvaluationRepository.create_evaluation(
+                        db, homework_id=homework_id, status="finished",
+                        provider=resolved_provider.value, attempt_id=attempt_id,
+                        **payload,
+                    )
+                )
+            except IntegrityError:
+                if existing:
+                    raise
+                return EvaluationService._on_concurrent_first_start(
+                    db, homework_id, resolved_provider, force_refresh,
+                )
             homework.status = "evaluated"
             HomeworkRepository.update_homework(db, homework)
             # Mock 没有分析图片，不应自动占用教师正式待批阅队列。
@@ -195,10 +243,15 @@ class EvaluationService:
                 attempt_id=attempt_id, total_score=0,
             )
         else:
-            evaluation = EvaluationRepository.create_evaluation(
-                db, homework_id=homework_id, status="processing",
-                provider="qwen", attempt_id=attempt_id,
-            )
+            try:
+                evaluation = EvaluationRepository.create_evaluation(
+                    db, homework_id=homework_id, status="processing",
+                    provider="qwen", attempt_id=attempt_id,
+                )
+            except IntegrityError:
+                return EvaluationService._on_concurrent_first_start(
+                    db, homework_id, resolved_provider, force_refresh,
+                )
         context = QwenAttemptContext(
             homework_id=homework_id, evaluation_id=evaluation.id, attempt_id=attempt_id,
         )
@@ -252,6 +305,7 @@ class EvaluationService:
                 },
                 tags=payload.get("issues", []),
                 annotations=annotations,
+                attempt_id=context.attempt_id,
             )
             if overlay != homework.image_url:
                 payload["compare_image_url"] = overlay

@@ -31,7 +31,13 @@ def get_db():
 
 
 def init_db():
-    """通过 Alembic 执行数据库迁移，回退到 create_all。"""
+    """Alembic is the sole authority for schema changes in every environment.
+
+    SQLAlchemy create_all does not migrate existing tables or add constraints.
+    Falling back after a failed Alembic upgrade would let a development server
+    run without the unique evaluation ownership or attempt columns it expects.
+    Tests that need ephemeral schemas can still explicitly call create_all.
+    """
     try:
         import os
         from alembic.config import Config
@@ -42,8 +48,6 @@ def init_db():
             alembic_cfg.set_main_option("sqlalchemy.url", os.environ["DATABASE_URL"])
         command.upgrade(alembic_cfg, "head")
     except Exception as exc:
-        if settings.app_env in ("production", "staging"):
-            raise RuntimeError(f"数据库迁移失败（{settings.app_env} 环境禁止回退）：{exc}") from exc
-        import logging
-        logging.warning("Alembic 迁移失败，回退到 create_all：%s", exc)
-        Base.metadata.create_all(bind=engine)
+        raise RuntimeError(
+            f"数据库迁移失败（{settings.app_env} 环境不会自动回退建表）：{exc}"
+        ) from exc

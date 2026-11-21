@@ -436,3 +436,103 @@ class TestStaleEvaluationRecovery:
         db_session.expire_all()
         assert fresh_processing.status == "processing"
         assert finished.status == "finished"
+
+
+class TestConcurrentFirstEvaluation:
+    def test_database_rejects_two_rows_for_the_same_homework(
+        self, db_session, seeded_homework
+    ):
+        from sqlalchemy.exc import IntegrityError
+
+        from app.repositories import EvaluationRepository
+
+        first = EvaluationRepository.create_evaluation(
+            db_session, homework_id=seeded_homework.id,
+            status="processing", provider="qwen", attempt_id="a" * 32,
+        )
+        with pytest.raises(IntegrityError):
+            EvaluationRepository.create_evaluation(
+                db_session, homework_id=seeded_homework.id,
+                status="processing", provider="qwen", attempt_id="b" * 32,
+            )
+        db_session.rollback()
+        still_one = EvaluationRepository.get_by_homework_id(
+            db_session, seeded_homework.id,
+        )
+        assert still_one.id == first.id
+        assert still_one.attempt_id == "a" * 32
+
+    def test_stale_empty_read_reuses_insert_winner_without_spawning_worker(
+        self, db_session, seeded_homework, monkeypatch, deferred_qwen
+    ):
+        """Both requests saw no row; only the winner may launch model work."""
+        from sqlalchemy import select
+
+        from app.models.evaluation import Evaluation
+        from app.repositories import EvaluationRepository
+
+        first = EvaluationRepository.create_evaluation(
+            db_session, homework_id=seeded_homework.id,
+            status="processing", provider="qwen", attempt_id="a" * 32,
+        )
+        real_get = EvaluationRepository.get_by_homework_id
+        calls = []
+
+        def racing_get(db, homework_id):
+            calls.append(homework_id)
+            if len(calls) == 1:
+                return None  # simulate other request committing after our read
+            return real_get(db, homework_id)
+
+        monkeypatch.setattr(
+            EvaluationRepository, "get_by_homework_id", staticmethod(racing_get)
+        )
+        result = EvaluationService.start(
+            db_session, seeded_homework.id, provider=EvaluationProvider.qwen
+        )
+        assert result == {
+            "status": "processing", "homework_id": seeded_homework.id,
+            "evaluation_id": first.id, "provider": "qwen",
+        }
+        assert len(deferred_qwen) == 0
+        assert len(db_session.scalars(
+            select(Evaluation).where(Evaluation.homework_id == seeded_homework.id)
+        ).all()) == 1
+
+    def test_force_refresh_after_racing_insert_creates_new_attempt_not_new_row(
+        self, db_session, seeded_homework, monkeypatch, deferred_qwen
+    ):
+        from sqlalchemy import select
+
+        from app.models.evaluation import Evaluation
+        from app.repositories import EvaluationRepository
+
+        first = EvaluationRepository.create_evaluation(
+            db_session, homework_id=seeded_homework.id,
+            status="processing", provider="qwen", attempt_id="a" * 32,
+        )
+        real_get = EvaluationRepository.get_by_homework_id
+        calls = []
+
+        def racing_get(db, homework_id):
+            calls.append(homework_id)
+            if len(calls) == 1:
+                return None
+            return real_get(db, homework_id)
+
+        monkeypatch.setattr(
+            EvaluationRepository, "get_by_homework_id", staticmethod(racing_get)
+        )
+        result = EvaluationService.start(
+            db_session, seeded_homework.id,
+            provider=EvaluationProvider.qwen, force_refresh=True,
+        )
+        assert result["evaluation_id"] == first.id
+        assert result["status"] == "processing"
+        assert len(deferred_qwen) == 1
+        db_session.expire_all()
+        rows = db_session.scalars(
+            select(Evaluation).where(Evaluation.homework_id == seeded_homework.id)
+        ).all()
+        assert len(rows) == 1
+        assert rows[0].attempt_id != "a" * 32
